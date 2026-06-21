@@ -9,7 +9,6 @@ import streamlit as st
 import plotly.graph_objects as go
 
 from core.mission_timeline import MissionTimeline, DroneTimeline
-from ui.swarm_view import DRONE_COLORS
 
 
 EVENT_COLORS = {

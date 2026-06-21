@@ -112,7 +112,6 @@ def _plan_strips(profile: MissionProfile, geometry: FieldGeometry) -> SwarmPlan:
     sectors: list[Sector] = []
     for i, strip_poly in enumerate(strips):
         bx0, by0, bx1, by1 = strip_poly.bounds
-        centroid = strip_poly.centroid
         area_ha = round(strip_poly.area / 10000, 2)
 
         sectors.append(Sector(

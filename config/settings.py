@@ -5,8 +5,7 @@ Centralizes all configuration, environment variables, and constants.
 """
 
 import os
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 
 from dotenv import load_dotenv
 
@@ -111,6 +110,10 @@ COMPLEXITY_MULTIPLIER = {
     "medium": 1.25,
     "high": 1.5,
 }
+
+# Operational time constants (shared across modules)
+REFILL_TIME_MIN: float = 5.0
+BATTERY_SWAP_TIME_MIN: float = 3.0
 
 app_config = AppConfig()
 drone_spec = DroneSpec()

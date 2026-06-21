@@ -70,7 +70,6 @@ def plan_routes(
         routes.append(route)
 
     total_dist = sum(r.total_distance_m for r in routes)
-    total_time = sum(r.estimated_time_min for r in routes)
     max_time = max(r.estimated_time_min for r in routes) if routes else 0
 
     if use_polygon:
