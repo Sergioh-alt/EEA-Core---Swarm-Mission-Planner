@@ -16,6 +16,7 @@ from shapely.geometry import LineString
 from shapely.affinity import rotate
 
 from config.settings import drone_spec
+from core.geometry import compute_polygon_orientation
 from core.swarm_planner import Sector, SwarmPlan
 from core.environment_analyzer import EnvironmentAssessment
 from utils.logger import get_logger
@@ -168,7 +169,7 @@ def _generate_polygon_route(
 ) -> DroneRoute:
     """Generate boustrophedon route within a convex polygon sector."""
     polygon = sector.boundary
-    orientation_deg = _polygon_orientation(polygon)
+    orientation_deg = compute_polygon_orientation(polygon)
 
     centroid = polygon.centroid
     cx, cy = centroid.x, centroid.y
@@ -252,24 +253,6 @@ def _generate_polygon_route(
         estimated_time_min=round(total_time_min, 1),
         overlap_pct=round(overlap_pct, 1),
     )
-
-
-def _polygon_orientation(polygon) -> float:
-    """Compute MABR orientation angle for sweep direction."""
-    mabr = polygon.minimum_rotated_rectangle
-    coords = list(mabr.exterior.coords)
-
-    edge1_len = math.dist(coords[0], coords[1])
-    edge2_len = math.dist(coords[1], coords[2])
-
-    if edge1_len >= edge2_len:
-        dx = coords[1][0] - coords[0][0]
-        dy = coords[1][1] - coords[0][1]
-    else:
-        dx = coords[2][0] - coords[1][0]
-        dy = coords[2][1] - coords[1][1]
-
-    return math.degrees(math.atan2(dy, dx))
 
 
 def _sector_polygon_pass_length(sector: Sector) -> float:

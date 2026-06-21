@@ -98,6 +98,30 @@ class FieldGeometry:
         )
 
 
+def compute_polygon_orientation(polygon: Polygon) -> float:
+    """
+    Compute the orientation angle (degrees) of the polygon's minimum-area
+    bounding rectangle (MABR). Used by both SwarmPlanner (strip alignment)
+    and RoutePlanner (sweep direction).
+
+    Returns the angle of the MABR's longest edge relative to the X-axis.
+    """
+    mabr = polygon.minimum_rotated_rectangle
+    coords = list(mabr.exterior.coords)
+
+    edge1_len = math.dist(coords[0], coords[1])
+    edge2_len = math.dist(coords[1], coords[2])
+
+    if edge1_len >= edge2_len:
+        dx = coords[1][0] - coords[0][0]
+        dy = coords[1][1] - coords[0][1]
+    else:
+        dx = coords[2][0] - coords[1][0]
+        dy = coords[2][1] - coords[1][1]
+
+    return math.degrees(math.atan2(dy, dx))
+
+
 @dataclass
 class SectorGeometry:
     """A sector assigned to a drone, defined by an arbitrary polygon boundary."""
