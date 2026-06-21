@@ -32,12 +32,27 @@ Geometry tests:
 - All sector boundaries valid Shapely polygons
 
 Stability tests (9 scenarios): ALL PASS
-- Rect fallback, rect points, triangle, hexagon, irregular 6-sided, small 1ha, large 1000ha, 1 drone, high wind NO-GO
 
 ---
 
-### Phase 3 — PENDING
-- RoutePlanner polygon-aware routing
+### Phase 3 — COMPLETED
+- RoutePlanner rewritten with dual-strategy routing
+- Rectangular route (v0.1 compat) for grid-partitioned sectors
+- Polygon sweep route for strip-partitioned polygon sectors
+- Sweep-line boustrophedon: MABR-aligned, intersects with sector polygon
+- Waypoint generation for convex polygon sectors
+- Efficiency calculation uses actual polygon area for polygon sectors
+
+Validation: PASS
+Regression vs v0.1: IDENTICAL OUTPUTS (rectangular route path)
+
+Polygon route tests:
+- Rectangle (800x500): 4 sectors, 100 passes each, all waypoints within bounds
+- Convex pentagon: 3 sectors, variable passes (106/120/100), valid routes
+- Triangle: 3 sectors, valid sweep patterns
+
+Stability tests (9 scenarios): ALL PASS
+- Rect fallback, rect points, triangle, hexagon, irregular 6-sided, small 1ha, large 1000ha, 1 drone, high wind NO-GO
 
 ---
 
@@ -52,4 +67,4 @@ Stability tests (9 scenarios): ALL PASS
 ---
 
 ## Last Update:
-2026-06-21T03:00:00Z — Phase 2 completed, all tests PASS
+2026-06-21T03:30:00Z — Phase 3 completed, all tests PASS
