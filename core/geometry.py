@@ -27,6 +27,7 @@ class FieldGeometry:
     centroid: tuple[float, float]
     bounds: tuple[float, float, float, float]  # (minx, miny, maxx, maxy)
     perimeter_m: float
+    is_synthetic: bool = False  # True when generated from hectares (v0.1 compat)
 
     @classmethod
     def from_hectares(cls, ha: float) -> "FieldGeometry":
@@ -51,6 +52,7 @@ class FieldGeometry:
             centroid=(centroid.x, centroid.y),
             bounds=boundary.bounds,
             perimeter_m=boundary.length,
+            is_synthetic=True,
         )
 
     @classmethod
