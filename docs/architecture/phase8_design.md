@@ -1,6 +1,6 @@
-# 🧩 Phase 8 Design Document — HIVE SYSTEM
+# Phase 8 Design Document — HIVE SYSTEM
 
-## 🔵 Overview
+## Overview
 
 Phase 8 introduces the **Hive System**, a multi-mission orchestration layer built on top of the existing Phase 0–7 swarm pipeline.
 
@@ -8,7 +8,7 @@ The purpose of this layer is NOT to modify existing swarm behavior, but to coord
 
 ---
 
-# 🧠 CORE DESIGN PRINCIPLE
+# CORE DESIGN PRINCIPLE
 
 > Hive orchestrates, it does not replace.
 
@@ -23,15 +23,15 @@ Hive only:
 
 ---
 
-# 🟡 PHASE 8.1 — HIVE CORE FOUNDATION
+# PHASE 8.1 — HIVE CORE FOUNDATION
 
-## 🎯 Purpose
+## Purpose
 
 Create the global state backbone of the system.
 
 ---
 
-## 📦 Core Components
+## Core Components
 
 ### 1. HiveState
 
@@ -81,7 +81,7 @@ Global registry of all drones.
 
 ---
 
-# 🔴 STRICT BOUNDARIES (DO NOT VIOLATE)
+# STRICT BOUNDARIES (DO NOT VIOLATE)
 
 Phase 8.1 must NOT include:
 
@@ -109,7 +109,7 @@ Hive does NOT implement alternatives to these systems.
 
 ---
 
-# 🧠 DATA DESIGN PRINCIPLES
+# DATA DESIGN PRINCIPLES
 
 ## Determinism
 
@@ -130,7 +130,7 @@ Hive must NOT affect system behavior unless explicitly invoked.
 
 ---
 
-# 📊 STATE FLOW (HIGH LEVEL)
+# STATE FLOW (HIGH LEVEL)
 
 Mission Input
 → MissionQueue
@@ -140,7 +140,7 @@ Mission Input
 
 ---
 
-# 🚫 NON-GOALS
+# NON-GOALS
 
 Phase 8.1 explicitly does NOT include:
 
@@ -151,7 +151,7 @@ Phase 8.1 explicitly does NOT include:
 
 ---
 
-# 🧭 DESIGN INTENT SUMMARY
+# DESIGN INTENT SUMMARY
 
 Phase 8.1 is a **structural foundation layer**:
 
