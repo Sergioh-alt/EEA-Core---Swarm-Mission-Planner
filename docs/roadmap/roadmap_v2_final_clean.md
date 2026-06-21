@@ -75,17 +75,19 @@ Production-stable core system
 
 ---
 
-## Phase 6 — Hardware Abstraction Layer (NEXT)
+## Phase 6 — Realism Layer (COMPLETED)
 
 ### Objective:
-Prepare system for real-world drone deployment.
+Introduce physical realism into mission simulation.
 
-### Tasks:
-- DroneInterface abstraction
-- BatterySystem interface
-- SprayerSystem model
-- ChargingStation simulation layer
-- Telemetry interface design
+### Implemented:
+- Drone Physics Layer (speed constraints, turn penalties, payload/wind impact)
+- Realistic Battery Model (distance, payload, wind, hover factors)
+- Liquid Consumption Model (area, crop, spray rate, refill events)
+- Mission Timeline Engine (launch, transit, spray, refill, swap, return, complete)
+- Timeline UI tab (Gantt chart + per-drone detail panels)
+
+44/44 tests pass. v0.1 backward compatibility preserved.
 
 ---
 
