@@ -1,5 +1,8 @@
 """
 Swarm Allocation Visualization
+
+Renders sector maps, route previews, and assignment tables.
+Supports both rectangular (v0.1) and polygon (v0.2) sector rendering.
 """
 
 import streamlit as st
@@ -33,7 +36,10 @@ def render_swarm_view(swarm: SwarmPlan, routes: RoutePlan):
     with c1:
         metric_card("Sectors", str(len(swarm.sectors)))
     with c2:
-        metric_card("Grid", f"{swarm.grid_cols} x {swarm.grid_rows}")
+        if swarm.partition_method == "strip":
+            metric_card("Method", "Strip")
+        else:
+            metric_card("Grid", f"{swarm.grid_cols} x {swarm.grid_rows}")
     with c3:
         metric_card("Area/Drone", f"{swarm.area_per_drone_ha} ha")
     with c4:
@@ -43,14 +49,24 @@ def render_swarm_view(swarm: SwarmPlan, routes: RoutePlan):
     tab_map, tab_routes, tab_table = st.tabs(["Sector Map", "Route Preview", "Assignment Table"])
 
     with tab_map:
-        _render_sector_map(swarm)
+        if swarm.partition_method == "strip":
+            _render_polygon_sector_map(swarm)
+        else:
+            _render_sector_map(swarm)
 
     with tab_routes:
-        _render_route_preview(swarm, routes)
+        if swarm.partition_method == "strip":
+            _render_polygon_route_preview(swarm, routes)
+        else:
+            _render_route_preview(swarm, routes)
 
     with tab_table:
         _render_assignment_table(swarm, routes)
 
+
+# ---------------------------------------------------------------------------
+# v0.1-compatible rectangular rendering
+# ---------------------------------------------------------------------------
 
 def _render_sector_map(swarm: SwarmPlan):
     fig = go.Figure()
@@ -142,19 +158,148 @@ def _render_route_preview(swarm: SwarmPlan, routes: RoutePlan):
     st.plotly_chart(fig, use_container_width=True)
 
 
+# ---------------------------------------------------------------------------
+# v0.2 polygon rendering
+# ---------------------------------------------------------------------------
+
+def _render_polygon_sector_map(swarm: SwarmPlan):
+    fig = go.Figure()
+
+    for sector in swarm.sectors:
+        color = DRONE_COLORS[(sector.drone_id - 1) % len(DRONE_COLORS)]
+
+        if sector.boundary is not None:
+            coords = list(sector.boundary.exterior.coords)
+            xs = [c[0] for c in coords]
+            ys = [c[1] for c in coords]
+        else:
+            xs = [sector.x_start, sector.x_end, sector.x_end, sector.x_start, sector.x_start]
+            ys = [sector.y_start, sector.y_start, sector.y_end, sector.y_end, sector.y_start]
+
+        fig.add_trace(go.Scatter(
+            x=xs, y=ys,
+            fill="toself",
+            fillcolor=_hex_to_rgba(color, 0.2),
+            line=dict(color=color, width=2),
+            name=f"Drone {sector.drone_id}",
+            hovertemplate=(
+                f"<b>Sector {sector.id}</b><br>"
+                f"Drone: {sector.drone_id}<br>"
+                f"Area: {sector.area_ha} ha<br>"
+                f"Perimeter: {sector.boundary.length:.0f} m"
+                "<extra></extra>"
+            ) if sector.boundary else "",
+        ))
+
+        centroid = sector.boundary.centroid if sector.boundary else None
+        cx = centroid.x if centroid else (sector.x_start + sector.x_end) / 2
+        cy = centroid.y if centroid else (sector.y_start + sector.y_end) / 2
+        fig.add_annotation(
+            x=cx, y=cy,
+            text=f"D{sector.drone_id}",
+            showarrow=False,
+            font=dict(size=14, color=color, family="Arial Black"),
+        )
+
+    fig.update_layout(
+        title=dict(text="Field Sector Map (Polygon Partition)", font=dict(size=16)),
+        xaxis_title="X (m)",
+        yaxis_title="Y (m)",
+        height=500,
+        showlegend=True,
+        template="plotly_dark",
+        xaxis=dict(scaleanchor="y", scaleratio=1),
+        margin=dict(l=40, r=40, t=50, b=40),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def _render_polygon_route_preview(swarm: SwarmPlan, routes: RoutePlan):
+    fig = go.Figure()
+
+    for sector in swarm.sectors:
+        color = DRONE_COLORS[(sector.drone_id - 1) % len(DRONE_COLORS)]
+
+        if sector.boundary is not None:
+            coords = list(sector.boundary.exterior.coords)
+            xs = [c[0] for c in coords]
+            ys = [c[1] for c in coords]
+        else:
+            xs = [sector.x_start, sector.x_end, sector.x_end, sector.x_start, sector.x_start]
+            ys = [sector.y_start, sector.y_start, sector.y_end, sector.y_end, sector.y_start]
+
+        fig.add_trace(go.Scatter(
+            x=xs, y=ys,
+            fill="toself",
+            fillcolor=_hex_to_rgba(color, 0.07),
+            line=dict(color=color, width=1, dash="dot"),
+            name=f"Sector {sector.id}",
+            showlegend=False,
+        ))
+
+    for route in routes.routes:
+        color = DRONE_COLORS[(route.drone_id - 1) % len(DRONE_COLORS)]
+        xs = [wp.x for wp in route.waypoints]
+        ys = [wp.y for wp in route.waypoints]
+        fig.add_trace(go.Scatter(
+            x=xs, y=ys,
+            mode="lines+markers",
+            line=dict(color=color, width=2),
+            marker=dict(size=3, color=color),
+            name=f"Drone {route.drone_id} route",
+            hovertemplate=(
+                f"<b>Drone {route.drone_id}</b><br>"
+                f"Passes: {route.num_passes}<br>"
+                f"Distance: {route.total_distance_m:.0f} m<br>"
+                f"Time: {route.estimated_time_min:.1f} min"
+                "<extra></extra>"
+            ),
+        ))
+
+    fig.update_layout(
+        title=dict(text="Route Preview (Polygon Sweep Pattern)", font=dict(size=16)),
+        xaxis_title="X (m)",
+        yaxis_title="Y (m)",
+        height=500,
+        showlegend=True,
+        template="plotly_dark",
+        xaxis=dict(scaleanchor="y", scaleratio=1),
+        margin=dict(l=40, r=40, t=50, b=40),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+
+# ---------------------------------------------------------------------------
+# Shared
+# ---------------------------------------------------------------------------
+
 def _render_assignment_table(swarm: SwarmPlan, routes: RoutePlan):
     route_map = {r.drone_id: r for r in routes.routes}
     data = []
     for sector in swarm.sectors:
         route = route_map.get(sector.drone_id)
-        data.append({
-            "Sector": sector.id,
-            "Drone": sector.drone_id,
-            "Area (ha)": sector.area_ha,
-            "Width (m)": round(sector.width_m),
-            "Height (m)": round(sector.height_m),
-            "Passes": route.num_passes if route else 0,
-            "Distance (m)": round(route.total_distance_m) if route else 0,
-            "Time (min)": round(route.estimated_time_min, 1) if route else 0,
-        })
+
+        if swarm.partition_method == "strip" and sector.boundary is not None:
+            row = {
+                "Sector": sector.id,
+                "Drone": sector.drone_id,
+                "Area (ha)": sector.area_ha,
+                "Perimeter (m)": round(sector.boundary.length),
+                "Passes": route.num_passes if route else 0,
+                "Distance (m)": round(route.total_distance_m) if route else 0,
+                "Time (min)": round(route.estimated_time_min, 1) if route else 0,
+            }
+        else:
+            row = {
+                "Sector": sector.id,
+                "Drone": sector.drone_id,
+                "Area (ha)": sector.area_ha,
+                "Width (m)": round(sector.width_m),
+                "Height (m)": round(sector.height_m),
+                "Passes": route.num_passes if route else 0,
+                "Distance (m)": round(route.total_distance_m) if route else 0,
+                "Time (min)": round(route.estimated_time_min, 1) if route else 0,
+            }
+        data.append(row)
+
     st.dataframe(data, use_container_width=True, hide_index=True)
