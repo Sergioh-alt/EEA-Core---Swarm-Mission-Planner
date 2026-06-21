@@ -17,11 +17,10 @@ Assumptions:
 import math
 from dataclasses import dataclass
 
+from config.settings import REFILL_TIME_MIN
 from utils.logger import get_logger
 
 logger = get_logger("liquid_model")
-
-REFILL_DURATION_MIN = 5.0
 
 
 @dataclass
@@ -69,16 +68,16 @@ def estimate_liquid(
             event_number=i + 1,
             trigger_after_ha=round(trigger_ha, 2),
             liquid_consumed_l=round(tank_capacity_l, 1),
-            refill_duration_min=REFILL_DURATION_MIN,
+            refill_duration_min=REFILL_TIME_MIN,
         ))
 
-    total_refill_time = num_refills * REFILL_DURATION_MIN
+    total_refill_time = num_refills * REFILL_TIME_MIN
 
     assumptions = [
         f"Spray rate: {spray_rate_l_per_ha} L/ha ({crop_type})",
         f"Tank capacity: {tank_capacity_l} L",
         f"Coverage per load: {ha_per_load:.2f} ha",
-        f"Refill time: {REFILL_DURATION_MIN} min per event",
+        f"Refill time: {REFILL_TIME_MIN} min per event",
     ]
 
     logger.info(

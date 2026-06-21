@@ -8,7 +8,8 @@ and total mission duration for each drone and the overall swarm.
 import math
 from dataclasses import dataclass
 
-from config.settings import drone_spec
+from config.settings import drone_spec, REFILL_TIME_MIN, BATTERY_SWAP_TIME_MIN
+from core.battery_model import compute_battery_wh
 from core.mission_intake import MissionProfile
 from core.route_planner import RoutePlan, DroneRoute
 from utils.logger import get_logger
@@ -38,9 +39,6 @@ class ResourcePlan:
     mission_duration_formatted: str
     bottleneck: str
 
-
-REFILL_TIME_MIN = 5.0
-BATTERY_SWAP_TIME_MIN = 3.0
 
 
 def plan_resources(
@@ -87,15 +85,12 @@ def _compute_drone_resources(
     route: DroneRoute,
     profile: MissionProfile,
 ) -> DroneResources:
-    battery_wh = profile.battery_capacity_mah * drone_spec.battery_voltage / 1000
+    battery_wh, usable_battery_wh = compute_battery_wh(profile.battery_capacity_mah)
     distance_km = route.total_distance_m / 1000
     energy_needed_wh = distance_km * drone_spec.power_consumption_wh_per_km
     energy_needed_wh *= profile.complexity_multiplier
 
-    usable_battery_wh = battery_wh * (1 - drone_spec.min_battery_reserve_pct / 100)
     battery_pct = (energy_needed_wh / battery_wh * 100) if battery_wh > 0 else 100
-
-    flights_per_battery = max(1, int(usable_battery_wh / energy_needed_wh)) if energy_needed_wh > 0 else 1
     battery_flights = max(1, int(1 / (battery_pct / 100))) if battery_pct > 0 else 1
 
     sector_area_ha = profile.field_size_ha / profile.num_drones

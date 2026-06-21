@@ -20,7 +20,7 @@ Assumptions:
 
 from dataclasses import dataclass
 
-from config.settings import drone_spec
+from config.settings import drone_spec, BATTERY_SWAP_TIME_MIN
 from core.drone_physics import (
     physics_config,
     compute_payload_power_factor,
@@ -30,7 +30,12 @@ from utils.logger import get_logger
 
 logger = get_logger("battery_model")
 
-BATTERY_SWAP_TIME_MIN = 3.0
+
+def compute_battery_wh(battery_capacity_mah: float) -> tuple[float, float]:
+    """Convert mAh capacity to (total_wh, usable_wh) using DroneSpec constants."""
+    total_wh = battery_capacity_mah * drone_spec.battery_voltage / 1000
+    usable_wh = total_wh * (1 - drone_spec.min_battery_reserve_pct / 100)
+    return total_wh, usable_wh
 
 
 @dataclass
@@ -61,8 +66,7 @@ def estimate_battery(
     complexity_multiplier: float = 1.0,
 ) -> BatteryEstimate:
     """Estimate battery consumption with physics-based factors."""
-    battery_wh = battery_capacity_mah * drone_spec.battery_voltage / 1000
-    usable_wh = battery_wh * (1 - drone_spec.min_battery_reserve_pct / 100)
+    battery_wh, usable_wh = compute_battery_wh(battery_capacity_mah)
 
     distance_km = distance_m / 1000
     base_wh = distance_km * drone_spec.power_consumption_wh_per_km

@@ -3,7 +3,6 @@ EEA Swarm Mission Planner - Input Validation
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
