@@ -56,8 +56,27 @@ Stability tests (9 scenarios): ALL PASS
 
 ---
 
-### Phase 4 — PENDING
-- UI polygon drawing
+### Phase 4 — COMPLETED
+- Field Input Mode selector: "Slider" (v0.1) / "Draw Polygon" (v0.2)
+- Polygon vertex entry with X,Y coordinate inputs (Add/Undo/Clear)
+- Live polygon preview chart (Plotly) in sidebar
+- Real-time area (ha, m2) and perimeter (m) display
+- Quick preset shapes: Rectangle, Pentagon, Hexagon, L-shape
+- Swarm sector map updated: renders polygon boundaries for strip-partitioned fields
+- Route preview updated: renders polygon-clipped sweep patterns
+- Assignment table updated: shows perimeter instead of width/height for polygon sectors
+- Full v0.1 backward compatibility preserved (Slider mode unchanged)
+
+Validation: PASS
+Regression vs v0.1: IDENTICAL OUTPUTS (Slider mode)
+
+Polygon UI tests:
+- All 4 presets produce valid FieldGeometry objects
+- Polygon pipeline runs full 7-module chain without errors
+- Sector visualization renders polygon boundaries correctly
+- Area/perimeter metrics display correctly
+
+Stability tests (9 scenarios): ALL PASS
 
 ---
 
@@ -67,4 +86,4 @@ Stability tests (9 scenarios): ALL PASS
 ---
 
 ## Last Update:
-2026-06-21T03:30:00Z — Phase 3 completed, all tests PASS
+2026-06-21T06:30:00Z — Phase 4 completed, all tests PASS
