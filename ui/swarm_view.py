@@ -18,6 +18,14 @@ DRONE_COLORS = [
 ]
 
 
+def _hex_to_rgba(hex_color: str, alpha: float) -> str:
+    hex_color = hex_color.lstrip("#")
+    r = int(hex_color[0:2], 16)
+    g = int(hex_color[2:4], 16)
+    b = int(hex_color[4:6], 16)
+    return f"rgba({r},{g},{b},{alpha})"
+
+
 def render_swarm_view(swarm: SwarmPlan, routes: RoutePlan):
     section_header("Swarm Allocation", "")
 
@@ -53,7 +61,7 @@ def _render_sector_map(swarm: SwarmPlan):
             x=[sector.x_start, sector.x_end, sector.x_end, sector.x_start, sector.x_start],
             y=[sector.y_start, sector.y_start, sector.y_end, sector.y_end, sector.y_start],
             fill="toself",
-            fillcolor=color + "33",
+            fillcolor=_hex_to_rgba(color, 0.2),
             line=dict(color=color, width=2),
             name=f"Drone {sector.drone_id}",
             hovertemplate=(
@@ -96,7 +104,7 @@ def _render_route_preview(swarm: SwarmPlan, routes: RoutePlan):
             x=[sector.x_start, sector.x_end, sector.x_end, sector.x_start, sector.x_start],
             y=[sector.y_start, sector.y_start, sector.y_end, sector.y_end, sector.y_start],
             fill="toself",
-            fillcolor=color + "11",
+            fillcolor=_hex_to_rgba(color, 0.07),
             line=dict(color=color, width=1, dash="dot"),
             name=f"Sector {sector.id}",
             showlegend=False,
