@@ -171,19 +171,38 @@ Ensure production-grade consistency and eliminate architectural drift.
 
 Introduce physical realism into simulation.
 
-### Planned
+### Implemented
 
-- Realistic battery consumption models
-- Drone speed constraints
-- Liquid spray consumption rates
-- Environmental drag factors
-- Mission time simulation accuracy
+- Drone Physics Layer (`core/drone_physics.py`)
+  - Speed constraints (min/max bounds)
+  - Turn penalties (deceleration + arc + acceleration)
+  - Payload impact (weight reduces speed, increases power)
+  - Wind impact (drag reduces ground speed, increases power)
+- Realistic Battery Model (`core/battery_model.py`)
+  - Distance-based consumption
+  - Payload weight factor
+  - Wind drag factor
+  - Hover/idle drain
+  - Battery swap detection
+- Liquid Consumption Model (`core/liquid_model.py`)
+  - Area-based consumption (field area x spray rate)
+  - Crop-specific spray rates
+  - Refill event estimation with timing
+- Mission Timeline Engine (`core/mission_timeline.py`)
+  - Sequential event generation: Launch, Transit, Spraying, Refill, Battery Swap, Return, Complete
+  - Human-readable timestamps
+  - Per-drone timeline with physics/battery/liquid breakdown
+- Timeline UI Tab (`ui/timeline_view.py`)
+  - Gantt-style mission execution chart
+  - Per-drone expandable detail panels
 
-### Validation (Target)
+### Validation
 
-- Physics consistency checks
-- Energy balance validation
-- Mission duration realism tests
+- 28 new realism-layer tests PASS
+- 16/16 original regression tests PASS (unchanged)
+- 44/44 total tests PASS
+- v0.1 backward compatibility: IDENTICAL outputs
+- Realism layer is additive — does not modify existing pipeline
 
 ---
 

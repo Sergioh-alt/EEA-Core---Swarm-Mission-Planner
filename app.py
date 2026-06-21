@@ -22,6 +22,8 @@ from ui.swarm_view import render_swarm_view
 from ui.resource_dashboard import render_resource_dashboard
 from ui.risk_dashboard import render_risk_dashboard
 from ui.recommendation_panel import render_recommendation
+from ui.timeline_view import render_timeline_view
+from core.mission_timeline import generate_timeline
 from utils.logger import get_logger
 
 logger = get_logger("app")
@@ -85,11 +87,14 @@ def main():
     risks = evaluate_risks(profile, assessment, resources, routes)
     rec = generate_recommendation(profile, assessment, swarm, routes, resources, risks)
 
-    tab_rec, tab_swarm, tab_resources, tab_risks = st.tabs([
+    timeline = generate_timeline(profile, routes, resources)
+
+    tab_rec, tab_swarm, tab_resources, tab_risks, tab_timeline = st.tabs([
         "Recommendation",
         "Swarm Planning",
         "Resources",
         "Risk Assessment",
+        "Mission Timeline",
     ])
 
     with tab_rec:
@@ -103,6 +108,9 @@ def main():
 
     with tab_risks:
         render_risk_dashboard(risks)
+
+    with tab_timeline:
+        render_timeline_view(timeline)
 
     st.markdown(
         """
