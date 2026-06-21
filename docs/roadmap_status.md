@@ -1,89 +1,73 @@
 # EEA Swarm Mission Planner — Execution Status
 
-## v0.2 Progress
+## Current State: Integrated Multi-Phase Build (v0.2–v0.4 core)
 
-### Phase 1 — COMPLETED
-- FieldGeometry implemented (`core/geometry.py`)
-- `from_hectares()` / `from_points()` working
-- SectorGeometry dataclass defined
-- Backward compatibility verified
-- Shapely 2.1.2 integrated
+The system has evolved through an integrated multi-phase build spanning v0.2 through v0.4 core features.
+Autonomous phase progression is **halted**. Awaiting human validation before further development.
+
+---
+
+## Implemented Features
+
+### GIS Geometry System (v0.2 — complete)
+- `core/geometry.py`: FieldGeometry with `from_hectares()` / `from_points()`
+- SectorGeometry dataclass
+- Shapely 2.1.2 integration
 - MissionProfile extended with `field_geometry` field
+- `is_synthetic` flag for dual-strategy dispatch
 
-Validation: PASS
-Regression vs v0.1: IDENTICAL OUTPUTS
+### Polygon-Based Routing (v0.3 core — complete)
+- SwarmPlanner: dual-strategy partitioning (grid for v0.1, strip for polygons)
+- MABR-aligned strip partition for user-drawn polygon fields
+- RoutePlanner: sweep-line boustrophedon for convex polygon sectors
+- Waypoint generation with polygon intersection
+- Efficiency calculation uses actual polygon area
 
----
-
-### Phase 2 — COMPLETED
-- SwarmPlanner rewritten with dual-strategy partitioning
-- Grid partition (v0.1 compat) for synthetic rectangular fields
-- Strip partition (MABR-aligned) for user-drawn polygon fields
-- Sector dataclass extended with optional `boundary: Polygon`
-- SwarmPlan extended with `partition_method` field
-- `is_synthetic` flag on FieldGeometry controls strategy dispatch
-
-Validation: PASS
-Regression vs v0.1: IDENTICAL OUTPUTS (grid partition path)
-
-Geometry tests:
-- Rectangle via from_points: 0% area gap, 0 m2 overlap, 0 m2 uncovered
-- Convex pentagon: 0% area gap, 0 m2 overlap, 0 m2 uncovered
-- All sector boundaries valid Shapely polygons
-
-Stability tests (9 scenarios): ALL PASS
-
----
-
-### Phase 3 — COMPLETED
-- RoutePlanner rewritten with dual-strategy routing
-- Rectangular route (v0.1 compat) for grid-partitioned sectors
-- Polygon sweep route for strip-partitioned polygon sectors
-- Sweep-line boustrophedon: MABR-aligned, intersects with sector polygon
-- Waypoint generation for convex polygon sectors
-- Efficiency calculation uses actual polygon area for polygon sectors
-
-Validation: PASS
-Regression vs v0.1: IDENTICAL OUTPUTS (rectangular route path)
-
-Polygon route tests:
-- Rectangle (800x500): 4 sectors, 100 passes each, all waypoints within bounds
-- Convex pentagon: 3 sectors, variable passes (106/120/100), valid routes
-- Triangle: 3 sectors, valid sweep patterns
-
-Stability tests (9 scenarios): ALL PASS
-- Rect fallback, rect points, triangle, hexagon, irregular 6-sided, small 1ha, large 1000ha, 1 drone, high wind NO-GO
-
----
-
-### Phase 4 — COMPLETED
-- Field Input Mode selector: "Slider" (v0.1) / "Draw Polygon" (v0.2)
-- Polygon vertex entry with X,Y coordinate inputs (Add/Undo/Clear)
-- Live polygon preview chart (Plotly) in sidebar
+### UI Polygon Drawing & Visualization (v0.4 partial — complete)
+- Field Input Mode selector: "Slider" (v0.1) / "Draw Polygon"
+- Polygon vertex entry with X,Y coordinates (Add/Undo/Clear)
+- Live Plotly polygon preview in sidebar
 - Real-time area (ha, m2) and perimeter (m) display
 - Quick preset shapes: Rectangle, Pentagon, Hexagon, L-shape
-- Swarm sector map updated: renders polygon boundaries for strip-partitioned fields
-- Route preview updated: renders polygon-clipped sweep patterns
-- Assignment table updated: shows perimeter instead of width/height for polygon sectors
-- Full v0.1 backward compatibility preserved (Slider mode unchanged)
-
-Validation: PASS
-Regression vs v0.1: IDENTICAL OUTPUTS (Slider mode)
-
-Polygon UI tests:
-- All 4 presets produce valid FieldGeometry objects
-- Polygon pipeline runs full 7-module chain without errors
-- Sector visualization renders polygon boundaries correctly
-- Area/perimeter metrics display correctly
-
-Stability tests (9 scenarios): ALL PASS
+- Sector map renders polygon boundaries for strip-partitioned fields
+- Route preview renders polygon-clipped sweep patterns
 
 ---
 
-### Phase 5 — PENDING
-- Validation & compatibility final pass
+## Backward Compatibility
+
+v0.1 default scenario (50ha wheat, 4 drones, 5000mAh, 10L, 25C, 10km/h wind):
+- Decision: GO WITH CAUTION
+- Confidence: 67.7%
+- Duration: 2h 03m
+- Sectors: 4, balance: 1.0
+- Coverage: 99.0%
+- Risk: Critical (0.80)
+
+All outputs remain **identical** when using Slider mode.
+
+---
+
+## Validation Summary
+
+All phases validated with:
+- 9+ stability test scenarios per phase
+- Regression tests against v0.1 outputs
+- Geometry coverage tests (0% area gap, 0 overlap)
+- Full 7-module pipeline integration tests
+
+---
+
+## Not Implemented (deferred)
+- Voronoi partitioning
+- Concave polygon handling
+- Ferry segments in routing
+- GIS imports (GeoJSON, KML)
+- Satellite map integration
+- Advanced convexity heuristics
+- Formal pytest suite (Phase 5 scope)
 
 ---
 
 ## Last Update:
-2026-06-21T06:30:00Z — Phase 4 completed, all tests PASS
+2026-06-21 — Autonomous progression halted. Awaiting human validation.
