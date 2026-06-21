@@ -6,8 +6,10 @@ a canonical MissionProfile consumed by downstream modules.
 """
 
 from dataclasses import dataclass
+from typing import Optional
 
 from config.settings import CROP_PROFILES, COMPLEXITY_MULTIPLIER
+from core.geometry import FieldGeometry
 from utils.logger import get_logger
 from utils.validators import validate_mission_inputs, ValidationResult
 
@@ -29,6 +31,7 @@ class MissionProfile:
     complexity_multiplier: float
     crop_notes: str
     field_size_m2: float
+    field_geometry: FieldGeometry
     validation: ValidationResult
 
 
@@ -40,6 +43,7 @@ def create_mission_profile(
     liquid_capacity_l: float,
     temperature_c: float,
     wind_speed_kmh: float,
+    field_geometry: Optional[FieldGeometry] = None,
 ) -> MissionProfile:
     logger.info(
         "Creating mission profile: %.1f ha, %s, %d drones",
@@ -61,6 +65,9 @@ def create_mission_profile(
     crop = CROP_PROFILES.get(crop_type, CROP_PROFILES["generic"])
     complexity = crop["complexity"]
 
+    if field_geometry is None:
+        field_geometry = FieldGeometry.from_hectares(field_size_ha)
+
     profile = MissionProfile(
         field_size_ha=field_size_ha,
         crop_type=crop_type,
@@ -75,6 +82,7 @@ def create_mission_profile(
         complexity_multiplier=COMPLEXITY_MULTIPLIER[complexity],
         crop_notes=crop["notes"],
         field_size_m2=field_size_ha * 10000,
+        field_geometry=field_geometry,
         validation=validation,
     )
 
