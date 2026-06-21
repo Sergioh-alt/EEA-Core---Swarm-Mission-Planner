@@ -1,6 +1,6 @@
-# 🧩 PHASE 8 = HIVE SYSTEM (MULTI-MISSION ORCHESTRATION)
+# PHASE 8 = HIVE SYSTEM (MULTI-MISSION ORCHESTRATION)
 
-## 🔵 Overview
+## Overview
 
 Phase 8 introduces the **Hive System**, a multi-mission orchestration layer built on top of the existing Phase 0–7 swarm pipeline.
 
@@ -8,13 +8,13 @@ This phase does NOT modify existing planning logic. Instead, it introduces a hig
 
 ---
 
-## 🧠 PHASE 8 STRUCTURE
+## PHASE 8 STRUCTURE
 
 The phase is divided into controlled sub-phases:
 
 ---
 
-## 🟡 PHASE 8.1 — HIVE CORE FOUNDATION
+## PHASE 8.1 — HIVE CORE FOUNDATION
 
 ### Objective:
 Create the global “brain” of the system.
@@ -32,7 +32,7 @@ Create the global “brain” of the system.
 
 ---
 
-## 🟡 PHASE 8.2 — MISSION ORCHESTRATOR
+## PHASE 8.2 — MISSION ORCHESTRATOR
 
 ### Objective:
 Enable execution of multiple missions using the existing Phase 0–7 pipeline.
@@ -44,7 +44,7 @@ Enable execution of multiple missions using the existing Phase 0–7 pipeline.
 
 ---
 
-## 🟡 PHASE 8.3 — FLEET MANAGER
+## PHASE 8.3 — FLEET MANAGER
 
 ### Objective:
 Manage drone allocation across missions.
@@ -56,7 +56,7 @@ Manage drone allocation across missions.
 
 ---
 
-## 🟡 PHASE 8.4 — RESOURCE SYSTEM
+## PHASE 8.4 — RESOURCE SYSTEM
 
 ### Objective:
 Manage shared resources across fleet.
@@ -68,7 +68,7 @@ Manage shared resources across fleet.
 
 ---
 
-## 🟡 PHASE 8.5 — HIVE INTEGRATION LAYER
+## PHASE 8.5 — HIVE INTEGRATION LAYER
 
 ### Objective:
 Integrate all Hive components into a unified system.
@@ -80,7 +80,7 @@ Integrate all Hive components into a unified system.
 
 ---
 
-## 🟡 PHASE 8.6 — VALIDATION & STABILIZATION
+## PHASE 8.6 — VALIDATION & STABILIZATION
 
 ### Objective:
 Full system validation of Hive layer.
@@ -94,7 +94,7 @@ Full system validation of Hive layer.
 
 ---
 
-## 🧭 IMPORTANT PRINCIPLE
+## IMPORTANT PRINCIPLE
 
 Phase 8 introduces **coordination, not replacement**.
 
