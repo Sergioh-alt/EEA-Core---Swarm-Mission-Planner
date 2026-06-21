@@ -96,7 +96,7 @@ Phase 8.1 must NOT include:
 
 ---
 
-# ♻️ REUSE PRINCIPLE
+# REUSE PRINCIPLE
 
 Hive MUST reuse Phase 0–7 execution engine:
 
