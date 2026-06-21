@@ -14,9 +14,9 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from shapely.geometry import Polygon, box
-from shapely.affinity import rotate, translate
+from shapely.affinity import rotate
 
-from core.geometry import FieldGeometry
+from core.geometry import FieldGeometry, compute_polygon_orientation
 from core.mission_intake import MissionProfile
 from core.environment_analyzer import EnvironmentAssessment
 from utils.logger import get_logger
@@ -106,7 +106,7 @@ def _plan_strips(profile: MissionProfile, geometry: FieldGeometry) -> SwarmPlan:
     num_drones = profile.num_drones
     field_polygon = geometry.boundary
 
-    orientation_deg = _compute_orientation(field_polygon)
+    orientation_deg = compute_polygon_orientation(field_polygon)
     strips = _partition_polygon_strips(field_polygon, num_drones, orientation_deg)
 
     sectors: list[Sector] = []
@@ -152,25 +152,6 @@ def _plan_strips(profile: MissionProfile, geometry: FieldGeometry) -> SwarmPlan:
         num_drones, area_per_drone, balance_score, orientation_deg,
     )
     return plan
-
-
-def _compute_orientation(polygon: Polygon) -> float:
-    """Compute the orientation angle of the minimum-area bounding rectangle."""
-    mabr = polygon.minimum_rotated_rectangle
-    coords = list(mabr.exterior.coords)
-
-    edge1_len = math.dist(coords[0], coords[1])
-    edge2_len = math.dist(coords[1], coords[2])
-
-    if edge1_len >= edge2_len:
-        dx = coords[1][0] - coords[0][0]
-        dy = coords[1][1] - coords[0][1]
-    else:
-        dx = coords[2][0] - coords[1][0]
-        dy = coords[2][1] - coords[1][1]
-
-    angle_rad = math.atan2(dy, dx)
-    return math.degrees(angle_rad)
 
 
 def _partition_polygon_strips(

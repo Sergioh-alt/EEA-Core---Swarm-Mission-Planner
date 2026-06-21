@@ -18,7 +18,7 @@ class AppConfig:
     name: str = os.getenv("APP_NAME", "EEA Swarm Mission Planner")
     env: str = os.getenv("APP_ENV", "development")
     log_level: str = os.getenv("LOG_LEVEL", "INFO")
-    version: str = "0.1.0"
+    version: str = "0.5.0"
 
 
 @dataclass
