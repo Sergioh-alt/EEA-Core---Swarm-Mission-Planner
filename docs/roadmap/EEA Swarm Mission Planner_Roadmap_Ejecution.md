@@ -260,25 +260,65 @@ Introduce adaptive decision-making.
 
 ---
 
-## PHASE 8 — HIVE SYSTEM (MULTI-MISSION ORCHESTRATION) ⏳ PENDING
+## PHASE 8 — HIVE SYSTEM (MULTI-MISSION ORCHESTRATION) ✅ COMPLETED
 
 ### Objective
 
-Scale from single mission to fleet-level system.
+Scale from single mission to fleet-level orchestration system.
 
-### Planned
+### Implemented
 
-- Multi-field coordination
-- Base station (Hive) system
-- Charging & logistics management
-- Fleet scheduling system
-- Resource inventory tracking
+#### Phase 8.1 — Hive Core Foundation ✅ (PR #18)
+- `core/hive.py`
+- FleetRegistry (drone state registry, 4 availability states)
+- MissionQueue (priority-based container: CRITICAL > HIGH > NORMAL > LOW)
+- HiveState via `build_hive_state()` (immutable system snapshot)
+- 47 tests | ADR-014
 
-### Validation (Target)
+#### Phase 8.2 — Mission Orchestrator ✅ (PR #19)
+- `core/mission_orchestrator.py`
+- `run_mission()` — executes QueuedMission through all Phase 0-7 pipeline stages
+- MissionExecutionContext — isolated container per mission (no shared mutable state)
+- MissionLifecycleManager — execution state registry
+- `run_queue()` — sequential multi-mission execution respecting priority ordering
+- 29 tests | ADR-015
 
-- Multi-mission coordination tests
-- Resource allocation correctness
-- Fleet scheduling stability
+#### Phase 8.3 — Fleet Manager ✅ (PR #20)
+- `core/fleet_manager.py`
+- DroneStatusTracker — state transition history
+- DroneAllocationManager — mission-to-drone assignment tracking (caller decides)
+- FleetStateUpdater — batch fleet operations (release, maintenance, charging)
+- 37 tests | ADR-016
+
+#### Phase 8.4 — Resource System ✅ (PR #21)
+- `core/resource_system.py`
+- BatteryInventoryManager — battery pool tracking (register, assign, consume, charge lifecycle)
+- LiquidInventoryManager — liquid reservoir tracking (register, assign, consume, refill lifecycle)
+- ResourceStateTracker — unified per-drone resource view + fleet-wide snapshots
+- ResourceSnapshot — immutable point-in-time resource state
+- 50 tests | ADR-017
+
+#### Phase 8.5 — Hive Integration Layer ✅ (PR #23)
+- `core/hive_integration.py`
+- HiveRuntime — lifecycle container for all sub-systems (shared FleetRegistry)
+- HiveController — unified entry point: submit_mission, execute, system_snapshot
+- HiveSystemSnapshot — consolidated view aggregating all sub-system states
+- 36 tests | ADR-018
+
+#### Phase 8.6 — Validation & Stabilization ✅ (PR #24)
+- `tests/test_phase8_validation.py`
+- 33 validation tests: component isolation, state consistency, mission isolation, fleet correctness, resource correctness, snapshot determinism, decision boundary compliance, backward compatibility, performance sanity
+- Decision Boundary Compliance Report: FULL COMPLIANCE (zero violations)
+- Phase 8 Final Validation Report: all areas verified
+
+### Validation
+
+- 232 Phase 8 tests (47 + 29 + 37 + 50 + 36 + 33)
+- 472/472 total tests PASS
+- Decision boundary compliance: FULL (no scheduling, optimization, or decision-making in any Hive component except limited queue priority in 8.2)
+- Zero Phase 0-7 modules modified (purely additive)
+- v0.1 backward compatibility: IDENTICAL outputs
+- ADR-014 through ADR-018 documenting all decisions
 
 ---
 
@@ -330,18 +370,20 @@ Make system deployable to real robotics hardware.
 
 ## FINAL SYSTEM STATE
 
-### Current Status (v0.7 — Post Intelligence Layer)
+### Current Status (v0.8 — Post Hive System)
 
-- Phases 0–7 COMPLETED
-- Phase 8 (Hive System) NEXT
-- 240 tests passing (full regression suite)
+- Phases 0–8 COMPLETED (8 major phases, 6 sub-phases in Phase 8)
+- Phase 9 (Hardware Abstraction Layer) NEXT
+- 472 tests passing (full regression suite)
 - Fully modular, additive architecture
 - Deterministic behavior preserved across all phases
 - v0.1 backward compatibility maintained
 - Intelligence Layer operational: state tracking, failure recovery, mission adaptation, swarm optimization
-- All architectural decisions documented (ADR-001 through ADR-013)
+- Hive System operational: multi-mission orchestration, fleet management, resource tracking, unified integration
+- Decision boundary compliance: FULL across all Hive components
+- All architectural decisions documented (ADR-001 through ADR-018)
 - Validation reports for all phases
 
 ### Last Updated
 
-2026-06-21 — Phase 7.4 (SwarmOptimizer) merged to main
+2026-06-21 — Phase 8.6 (Validation & Stabilization) merged to main
