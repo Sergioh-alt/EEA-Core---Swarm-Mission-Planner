@@ -123,21 +123,29 @@ Implementation: `core/resource_system.py` | 50 tests | ADR-017
 
 ---
 
-## Phase 8.5 -- Integration Layer [PENDING]
+## Phase 8.5 -- Integration Layer [COMPLETED]
 
 ### Decision-making: NOT ALLOWED
 
-- only connects systems
-- no logic changes
+Components:
+- HiveRuntime (component lifecycle container)
+- HiveController (unified entry point -- delegates only)
+- HiveSystemSnapshot (read-only state aggregation)
+
+Verified: No select_drone, allocate_resources, optimize, schedule, balance, rank, or recommend methods exist. AST inspection + attribute checks passed.
+
+Implementation: `core/hive_integration.py` | 36 tests | ADR-018
 
 ---
 
-## Phase 8.6 -- Validation Layer [PENDING]
+## Phase 8.6 -- Validation Layer [COMPLETED]
 
 ### Decision-making: NOT ALLOWED
 
-- only evaluates system correctness
+- evaluates system correctness only
 - no runtime influence
+- 33 validation tests including code-level decision boundary compliance
+- Full decision boundary compliance report generated
 
 ---
 
@@ -194,8 +202,8 @@ Resource System (8.4) records:
 | 8.2 | LIMITED (queue priority only) | COMPLETED | Yes (29 tests) |
 | 8.3 | STRICTLY FORBIDDEN | COMPLETED | Yes (37 tests) |
 | 8.4 | NOT ALLOWED | COMPLETED | Yes (50 tests) |
-| 8.5 | NOT ALLOWED | PENDING | -- |
-| 8.6 | NOT ALLOWED | PENDING | -- |
+| 8.5 | NOT ALLOWED | COMPLETED | Yes (36 tests) |
+| 8.6 | NOT ALLOWED | COMPLETED | Yes (33 tests) |
 
 ---
 
