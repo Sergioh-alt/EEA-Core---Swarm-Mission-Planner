@@ -191,30 +191,49 @@ Unified per-drone resource view integrating both managers.
 
 ---
 
-# PHASE 8.5 -- HIVE INTEGRATION LAYER [PENDING]
+# PHASE 8.5 -- HIVE INTEGRATION LAYER [COMPLETED]
 
 ## Purpose
 
-Integrate all Hive components (8.1-8.4) into a unified system.
+Integrate all Hive components (8.1-8.4) into a unified orchestration framework.
 
-## Planned:
-- system-level orchestration connecting all modules
-- communication between Hive modules
-- global state consistency
+## Implementation
+
+Module: `core/hive_integration.py` | Tests: `tests/test_hive_integration.py` (36 tests) | ADR: ADR-018
+
+## Core Components
+
+### 1. HiveRuntime
+
+Lifecycle container for all sub-systems. Initializes FleetRegistry, MissionQueue, MissionLifecycleManager, DroneStatusTracker, DroneAllocationManager, FleetStateUpdater, BatteryInventoryManager, LiquidInventoryManager, ResourceStateTracker. All share same FleetRegistry instance.
+
+### 2. HiveController
+
+Unified entry point. Every method delegates to existing sub-systems -- no new intelligence.
+- Setup: register_drone(s), register_battery, register_reservoir
+- Missions: submit_mission() -> execute_next() / execute_all()
+- Visibility: system_snapshot() -> HiveSystemSnapshot
+- Access: get_mission_context(), get_mission_resources(), runtime.*
+
+### 3. HiveSystemSnapshot
+
+Consolidated read-only view: HiveState + fleet_summary + ResourceSnapshot + lifecycle_summary.
 
 ---
 
-# PHASE 8.6 -- VALIDATION & STABILIZATION [PENDING]
+# PHASE 8.6 -- VALIDATION & STABILIZATION [COMPLETED]
 
 ## Purpose
 
-Full system validation of the complete Hive layer.
+Full system validation and certification of the complete Hive layer.
 
-## Planned:
-- full regression suite execution
-- multi-mission simulation tests
-- architecture validation report
-- performance sanity checks
+## Completed:
+- 472/472 tests passing (full regression suite)
+- 33 validation tests covering: component isolation, state consistency, mission isolation, fleet correctness, resource correctness, snapshot determinism, decision boundary compliance, backward compatibility, performance sanity
+- Decision Boundary Compliance Report: FULL COMPLIANCE (zero violations)
+- Phase 8 Final Validation Report: all areas verified
+- Architecture review: no risks identified
+- Tests: `tests/test_phase8_validation.py` (33 tests)
 
 ---
 
@@ -276,7 +295,7 @@ Mission Input
 -> MissionOrchestrator (8.2) -- isolated execution through Phase 0-7 pipeline
 -> Fleet Manager (8.3) -- drone assignment tracking
 -> Resource System (8.4) -- battery/liquid tracking
--> (8.5: unified integration)
+-> HiveController (8.5) -- unified entry point, system snapshots
 
 ---
 
@@ -288,11 +307,11 @@ Mission Input
 | 8.2 Mission Orchestrator | COMPLETED | core/mission_orchestrator.py | 29 | ADR-015 |
 | 8.3 Fleet Manager | COMPLETED | core/fleet_manager.py | 37 | ADR-016 |
 | 8.4 Resource System | COMPLETED | core/resource_system.py | 50 | ADR-017 |
-| 8.5 Integration Layer | PENDING | -- | -- | -- |
-| 8.6 Validation | PENDING | -- | -- | -- |
-| **Total** | **4/6 complete** | **4 modules** | **163 tests** | **4 ADRs** |
+| 8.5 Integration Layer | COMPLETED | core/hive_integration.py | 36 | ADR-018 |
+| 8.6 Validation | COMPLETED | tests/test_phase8_validation.py | 33 | -- |
+| **Total** | **6/6 COMPLETE** | **5 modules** | **232 tests** | **5 ADRs** |
 
-Total project tests: 403 (all passing). v0.1 backward compatibility: IDENTICAL.
+Total project tests: 472 (all passing). v0.1 backward compatibility: IDENTICAL. Decision boundary compliance: FULL.
 
 ---
 
@@ -305,8 +324,12 @@ It defines:
 - how missions are executed in isolation (8.2)
 - how drone assignments are tracked (8.3)
 - how resources are monitored (8.4)
+- how all components are unified (8.5)
+- how the system is validated (8.6)
 
 Decision-making is centralized in Phase 8.2 only.
 Everything else is deterministic state handling.
+
+**Phase 8 is COMPLETE and CERTIFIED READY for Phase 9.**
 
 ---

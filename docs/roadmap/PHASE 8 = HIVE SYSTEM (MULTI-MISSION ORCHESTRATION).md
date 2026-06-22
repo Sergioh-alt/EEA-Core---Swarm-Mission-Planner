@@ -86,40 +86,47 @@ Fleet-wide resource awareness and tracking across missions (state tracking only,
 
 ---
 
-## PHASE 8.5 -- HIVE INTEGRATION LAYER [PENDING]
+## PHASE 8.5 -- HIVE INTEGRATION LAYER [COMPLETED]
 
 ### Objective:
 Integrate all Hive components into a unified system.
 
-### Includes:
-- system-level orchestration
-- communication between Hive modules
-- global state consistency
+### Implemented (PR #23):
+- **HiveRuntime** -- lifecycle container for all sub-systems (shared FleetRegistry)
+- **HiveController** -- unified entry point: submit, execute, snapshot
+- **HiveSystemSnapshot** -- consolidated state from all sub-systems
+- Module: `core/hive_integration.py`
+- Tests: 36 tests in `tests/test_hive_integration.py`
+- ADR: ADR-018
 
 ---
 
-## PHASE 8.6 -- VALIDATION & STABILIZATION [PENDING]
+## PHASE 8.6 -- VALIDATION & STABILIZATION [COMPLETED]
 
 ### Objective:
 Full system validation of Hive layer.
 
-### Includes:
-- full regression suite execution
-- multi-mission simulation tests
-- architecture validation report
-- ADR documentation
-- performance sanity checks
+### Completed:
+- 472/472 tests passing (full regression suite)
+- 33 validation-specific tests (component isolation, state consistency, decision boundary compliance)
+- Decision Boundary Compliance Report: FULL COMPLIANCE
+- Phase 8 Final Validation Report: all areas verified
+- Architecture review: no risks identified
+- Performance sanity checks: all pass
 
 ---
 
 ## CURRENT STATUS
 
-- **Phases completed:** 8.1, 8.2, 8.3, 8.4
-- **Phases remaining:** 8.5, 8.6
-- **Total tests:** 403 (all passing)
+- **Phases completed:** 8.1, 8.2, 8.3, 8.4, 8.5, 8.6
+- **Phases remaining:** NONE -- Phase 8 is COMPLETE
+- **Total tests:** 472 (all passing)
+- **Phase 8 tests:** 232
 - **Architecture violations:** 0
 - **Phase 0-7 modifications:** 0
+- **Decision boundary violations:** 0
 - **v0.1 backward compatibility:** IDENTICAL
+- **Status:** CERTIFIED READY FOR PHASE 9
 
 ---
 
