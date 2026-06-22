@@ -1,4 +1,4 @@
-# Decision Boundary Map — Phase 8 (Hive System)
+# Decision Boundary Map -- Phase 8 (Hive System)
 
 ## Purpose
 
@@ -19,9 +19,9 @@ All other components are strictly stateful or structural.
 
 # DECISION RESPONSIBILITY MATRIX
 
-## Phase 0–7 (Execution Engine)
+## Phase 0-7 (Execution Engine)
 
-### ❌ Decision-making: NOT ALLOWED
+### Decision-making: NOT ALLOWED
 
 These modules only execute deterministic logic:
 - plan_swarm()
@@ -29,50 +29,52 @@ These modules only execute deterministic logic:
 - generate_timeline()
 - evaluate_risks()
 
-✔ They compute outputs  
-❌ They do NOT decide assignments or priorities
+They compute outputs.
+They do NOT decide assignments or priorities.
 
 ---
 
-## Phase 8.1 — Hive Core Foundation
+## Phase 8.1 -- Hive Core Foundation [COMPLETED]
 
-### ❌ Decision-making: NOT ALLOWED
+### Decision-making: NOT ALLOWED
 
 Components:
-- HiveState
-- MissionQueue
-- FleetRegistry
+- HiveState (`build_hive_state()`)
+- MissionQueue (priority ordering only -- FIFO within same priority)
+- FleetRegistry (state registry only)
 
 ### Role:
 - state representation only
 - storage and retrieval only
 
-✔ No logic inference  
-✔ No prioritization decisions  
-✔ No allocation decisions  
+Verified: No logic inference, no prioritization decisions, no allocation decisions.
+
+Implementation: `core/hive.py` | 47 tests | ADR-014
 
 ---
 
-## Phase 8.2 — Mission Orchestrator
+## Phase 8.2 -- Mission Orchestrator [COMPLETED]
 
-### ✅ LIMITED DECISION AUTHORITY
+### LIMITED DECISION AUTHORITY
 
 Allowed decisions:
 - mission execution order (based on queue priority only)
-- which mission runs next
-- execution flow control
+- which mission runs next (dequeue from MissionQueue)
+- execution flow control (sequential pipeline stages)
 
-❌ NOT allowed:
+NOT allowed:
 - drone selection optimization
 - resource balancing
 - performance-based assignment
 - adaptive planning
 
+Implementation: `core/mission_orchestrator.py` | 29 tests | ADR-015
+
 ---
 
-## Phase 8.3 — Fleet Manager
+## Phase 8.3 -- Fleet Manager [COMPLETED]
 
-### ❌ DECISION MAKING STRICTLY FORBIDDEN
+### DECISION MAKING STRICTLY FORBIDDEN
 
 Fleet Manager MUST NOT decide:
 
@@ -82,34 +84,57 @@ Fleet Manager MUST NOT decide:
 
 ### Allowed ONLY:
 - register assignment (external decision input)
-- track drone state
+- track drone state transitions
 - report availability
+- batch state updates (release, maintenance, charging)
 
 > Fleet Manager = Passive registry, NOT allocator
 
----
+Verified: DroneAllocationManager requires caller to specify drone_id and mission_id explicitly.
+No ranking, scoring, or selection logic exists.
 
-## Phase 8.4 — Resource System (Future)
-
-### ❌ Decision-making: NOT ALLOWED
-
-- only tracks resources
-- no allocation strategy
+Implementation: `core/fleet_manager.py` | 37 tests | ADR-016
 
 ---
 
-## Phase 8.5 — Integration Layer
+## Phase 8.4 -- Resource System [COMPLETED]
 
-### ❌ Decision-making: NOT ALLOWED
+### Decision-making: NOT ALLOWED
+
+Resource System MUST NOT decide:
+
+- which drone receives which battery
+- which mission receives resources
+- how resources should be distributed
+- charging or refill priority
+
+### Allowed ONLY:
+- track battery state (available / in_use / charging / depleted)
+- track liquid state (full / partial / empty / refilling)
+- record consumption events per drone/mission
+- report resource availability via snapshots
+
+> Resource System = Passive state layer, NOT allocator
+
+Verified: BatteryInventoryManager and LiquidInventoryManager require caller to
+specify all assignments. No ranking, scoring, optimization, or allocation logic.
+
+Implementation: `core/resource_system.py` | 50 tests | ADR-017
+
+---
+
+## Phase 8.5 -- Integration Layer [PENDING]
+
+### Decision-making: NOT ALLOWED
 
 - only connects systems
 - no logic changes
 
 ---
 
-## Phase 8.6 — Validation Layer
+## Phase 8.6 -- Validation Layer [PENDING]
 
-### ❌ Decision-making: NOT ALLOWED
+### Decision-making: NOT ALLOWED
 
 - only evaluates system correctness
 - no runtime influence
@@ -120,26 +145,57 @@ Fleet Manager MUST NOT decide:
 
 Any of the following indicates architecture violation:
 
-- “best drone selection”
-- “optimal assignment”
-- “load balancing”
-- “efficiency scoring”
-- “automatic reallocation”
-- “smart scheduling”
+- "best drone selection"
+- "optimal assignment"
+- "load balancing"
+- "efficiency scoring"
+- "automatic reallocation"
+- "smart scheduling"
+- "resource prioritization"
+- "charging optimization"
+- "refill optimization"
 
 ---
 
 # SAFE PATTERN (CORRECT DESIGN)
 
-✔ Decisions happen ONLY in Phase 8.2
+Decisions happen ONLY in Phase 8.2.
 
-Example:
+Example flow:
 
-Mission Orchestrator decides:
-→ assign Drone A to Mission 1
+```
+Mission Orchestrator (8.2) decides:
+  -> assign Drone A to Mission 1
 
-Fleet Manager does:
-→ record Drone A = Mission 1
+Fleet Manager (8.3) records:
+  -> Drone A = Mission 1 (IDLE -> ACTIVE)
+
+Resource System (8.4) records:
+  -> Battery 101 assigned to Drone A
+  -> Liquid reservoir 201 assigned to Drone A
+
+After mission completion:
+Fleet Manager (8.3) records:
+  -> Drone A released (ACTIVE -> IDLE)
+
+Resource System (8.4) records:
+  -> Battery 101 consumed 40%, released
+  -> Reservoir 201 consumed 6L, released
+```
+
+---
+
+# COMPLIANCE STATUS
+
+| Phase | Decision Authority | Status | Verified |
+|---|---|---|---|
+| 0-7 | NOT ALLOWED | N/A (execution engine) | Yes |
+| 8.1 | NOT ALLOWED | COMPLETED | Yes (47 tests) |
+| 8.2 | LIMITED (queue priority only) | COMPLETED | Yes (29 tests) |
+| 8.3 | STRICTLY FORBIDDEN | COMPLETED | Yes (37 tests) |
+| 8.4 | NOT ALLOWED | COMPLETED | Yes (50 tests) |
+| 8.5 | NOT ALLOWED | PENDING | -- |
+| 8.6 | NOT ALLOWED | PENDING | -- |
 
 ---
 
@@ -147,7 +203,7 @@ Fleet Manager does:
 
 Phase 8 architecture follows a strict rule:
 
-> Decision-making is centralized.  
+> Decision-making is centralized.
 > Everything else is deterministic state handling.
 
 This prevents:

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Phase 8 introduces the **Hive System**, a multi-mission orchestration layer built on top of the existing Phase 0–7 swarm pipeline.
+Phase 8 introduces the **Hive System**, a multi-mission orchestration layer built on top of the existing Phase 0-7 swarm pipeline.
 
 This phase does NOT modify existing planning logic. Instead, it introduces a higher-level coordination system that manages multiple missions, drone fleets, and shared resources.
 
@@ -14,17 +14,20 @@ The phase is divided into controlled sub-phases:
 
 ---
 
-## PHASE 8.1 — HIVE CORE FOUNDATION
+## PHASE 8.1 -- HIVE CORE FOUNDATION [COMPLETED]
 
 ### Objective:
-Create the global “brain” of the system.
+Create the global "brain" of the system.
 
-### Includes ONLY:
-- HiveState
-- MissionQueue
-- FleetRegistry
+### Implemented (PR #18):
+- **HiveState** -- central immutable system snapshot via `build_hive_state()`
+- **MissionQueue** -- priority-based container (CRITICAL > HIGH > NORMAL > LOW, FIFO within same)
+- **FleetRegistry** -- drone registry with 4 availability states (idle/active/charging/maintenance)
+- Module: `core/hive.py`
+- Tests: 47 tests in `tests/test_hive.py`
+- ADR: ADR-014
 
-### ❌ Explicitly excluded:
+### Excluded (confirmed absent):
 - No scheduling logic
 - No optimization logic
 - No hardware abstraction
@@ -32,43 +35,58 @@ Create the global “brain” of the system.
 
 ---
 
-## PHASE 8.2 — MISSION ORCHESTRATOR
+## PHASE 8.2 -- MISSION ORCHESTRATOR [COMPLETED]
 
 ### Objective:
-Enable execution of multiple missions using the existing Phase 0–7 pipeline.
+Enable execution of multiple missions using the existing Phase 0-7 pipeline.
 
-### Includes:
-- run_mission()
-- mission lifecycle manager
-- mission isolation layer
+### Implemented (PR #19):
+- **`run_mission()`** -- executes QueuedMission through all 8 Phase 0-7 pipeline stages
+- **MissionExecutionContext** -- isolated container per mission (no shared mutable state)
+- **MissionLifecycleManager** -- execution state registry with phase tracking
+- **`run_queue()`** -- sequential multi-mission execution respecting priority ordering
+- Module: `core/mission_orchestrator.py`
+- Tests: 29 tests in `tests/test_orchestrator.py`
+- ADR: ADR-015
+- Isolation verified: mission B does not affect mission A
+- Failed missions don't block the queue
 
 ---
 
-## PHASE 8.3 — FLEET MANAGER
+## PHASE 8.3 -- FLEET MANAGER [COMPLETED]
 
 ### Objective:
-Manage drone allocation across missions.
+Manage drone allocation tracking across missions (state tracking only, no decision-making).
 
-### Includes:
-- drone allocation system
-- availability tracking
-- state transitions (idle / active / charging / maintenance)
+### Implemented (PR #20):
+- **DroneStatusTracker** -- state transition history wrapping FleetRegistry
+- **DroneAllocationManager** -- mission-to-drone assignment tracking (caller decides assignments)
+- **FleetStateUpdater** -- batch operations (release mission drones, maintenance, charging)
+- Module: `core/fleet_manager.py`
+- Tests: 37 tests in `tests/test_fleet_manager.py`
+- ADR: ADR-016
+- Validated transitions: only IDLE drones can be assigned, no silent overwrites
 
 ---
 
-## PHASE 8.4 — RESOURCE SYSTEM
+## PHASE 8.4 -- RESOURCE SYSTEM [COMPLETED]
 
 ### Objective:
-Manage shared resources across fleet.
+Fleet-wide resource awareness and tracking across missions (state tracking only, no allocation decisions).
 
-### Includes:
-- battery availability tracking
-- liquid/sprayer resources
-- resource constraints logic
+### Implemented (PR #21):
+- **BatteryInventoryManager** -- battery pool tracking (register, assign, consume, charge lifecycle)
+- **LiquidInventoryManager** -- liquid reservoir tracking (register, assign, consume, refill lifecycle)
+- **ResourceStateTracker** -- unified per-drone resource view + fleet-wide snapshots
+- **ResourceSnapshot** -- immutable point-in-time resource state
+- Module: `core/resource_system.py`
+- Tests: 50 tests in `tests/test_resource_system.py`
+- ADR: ADR-017
+- Consumption logging per drone/mission, multi-mission isolation verified
 
 ---
 
-## PHASE 8.5 — HIVE INTEGRATION LAYER
+## PHASE 8.5 -- HIVE INTEGRATION LAYER [PENDING]
 
 ### Objective:
 Integrate all Hive components into a unified system.
@@ -80,7 +98,7 @@ Integrate all Hive components into a unified system.
 
 ---
 
-## PHASE 8.6 — VALIDATION & STABILIZATION
+## PHASE 8.6 -- VALIDATION & STABILIZATION [PENDING]
 
 ### Objective:
 Full system validation of Hive layer.
@@ -94,10 +112,21 @@ Full system validation of Hive layer.
 
 ---
 
+## CURRENT STATUS
+
+- **Phases completed:** 8.1, 8.2, 8.3, 8.4
+- **Phases remaining:** 8.5, 8.6
+- **Total tests:** 403 (all passing)
+- **Architecture violations:** 0
+- **Phase 0-7 modifications:** 0
+- **v0.1 backward compatibility:** IDENTICAL
+
+---
+
 ## IMPORTANT PRINCIPLE
 
 Phase 8 introduces **coordination, not replacement**.
 
-All Phase 0–7 systems remain unchanged and are used as the execution engine inside the Hive layer.
+All Phase 0-7 systems remain unchanged and are used as the execution engine inside the Hive layer.
 
 ---
