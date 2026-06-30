@@ -1,0 +1,186 @@
+
+======================================================================
+  PHASE 10B — END-TO-END DIGITAL TWIN PIPELINE VALIDATION
+======================================================================
+Timestamp: 2026-06-30 13:13:21 UTC
+
+======================================================================
+  1. START SIMULATION CORE (3 drones)
+======================================================================
+  [PASS] SimulationCore initialized
+  [PASS] 3 drones spawned
+  [PASS] Drone IDs are [1, 2, 3]
+  Drone IDs: [1, 2, 3]
+  Tick count: 1
+
+======================================================================
+  2. ROS2 STATE PUBLICATION
+======================================================================
+  Active topics: ['/drone_1/state', '/drone_1/battery', '/drone_1/position', '/drone_2/state', '/drone_2/battery', '/drone_2/position', '/drone_3/state', '/drone_3/battery', '/drone_3/position', '/swarm/global_state']
+  Total messages published: 10
+  [PASS] ROS2 bus has published messages
+  [PASS] /drone_1/state exists
+  [PASS] /drone_2/state exists
+  [PASS] /drone_3/state exists
+  [PASS] /swarm/global_state exists
+  [PASS] Drone 1 state is DroneStateMessage
+  [PASS] Drone 2 state is DroneStateMessage
+  [PASS] Drone 3 state is DroneStateMessage
+  [PASS] Drone states are independent (different IDs)
+
+======================================================================
+  3. SYNC ENGINE SYNCHRONIZATION
+======================================================================
+  [PASS] Drone 1 sync accepted
+  [PASS] Drone 2 sync accepted
+  [PASS] Drone 3 sync accepted
+  Sync version after initial sync: 6
+  [PASS] Version > 0 after sync
+
+======================================================================
+  4. DIGITAL TWIN CONSISTENCY
+======================================================================
+  SwarmState.swarm_id: validation-swarm
+  SwarmState.total_drones: 3
+  SwarmState.version: 6
+  [PASS] SwarmState contains 3 drones
+  [PASS] SwarmState has correct swarm_id
+  [PASS] All 3 drone states present
+  [PASS] Drone 1 battery synced
+  [PASS] Drone 2 battery synced
+  [PASS] Drone 3 battery synced
+
+======================================================================
+  5. SNAPSHOT CREATION (multiple timestamps)
+======================================================================
+  Snapshot 1: snap-000001 (v1)
+  Snapshot 2: snap-000002 (v2)
+  Snapshot 3: snap-000003 (v3)
+  Snapshot 4: snap-000004 (v4)
+  [PASS] 4 snapshots created
+  [PASS] Snap1 version < Snap4 version
+  [PASS] Snapshots are distinct
+
+======================================================================
+  6. SNAPSHOT IMMUTABILITY
+======================================================================
+  [PASS] Snap1 still exists after updates
+  [PASS] Snap1 drone 1 battery unchanged
+  [PASS] Snap2 drone 1 battery = 90%
+  [PASS] Snapshot is truly immutable (frozen)
+
+======================================================================
+  7. COMPLETE REPLAY EXECUTION
+======================================================================
+  Timeline ID: replay-000001
+  Total frames: 4
+  Start ms: 3690691
+  End ms: 3690691
+  [PASS] Replay timeline has 4 frames
+  [PASS] Timeline starts at snap1 timestamp
+  [PASS] Timeline ends at snap4 timestamp
+
+======================================================================
+  8. REPLAY SEQUENCE RECONSTRUCTION
+======================================================================
+  [PASS] Frame 0 = snap1 state
+  [PASS] Frame 1 = snap2 state
+  [PASS] Frame 2 = snap3 state
+  [PASS] Frame 3 = snap4 state
+  [PASS] Replay shows drone 1 battery 100→90%
+
+======================================================================
+  9-10. RESTORED STATE vs ORIGINAL COMPARISON
+======================================================================
+  [PASS] Restored state is not None
+  [PASS] Restored == original (identity)
+  [PASS] Restored total_drones matches
+  [PASS] Restored drone_states match
+  [PASS] Restored version matches
+  [PASS] Drone 1: battery matches (90.0%)
+  [PASS] Drone 2: battery matches (85.0%)
+  [PASS] Drone 3: battery matches (80.0%)
+  Original state hash: -9103179805331828086
+  Restored state hash: -9103179805331828086
+  [PASS] Hash values are identical
+
+======================================================================
+  11. FAILURE INJECTION (all 4 types)
+======================================================================
+  [PASS] Battery degradation active
+  [PASS] GPS loss active
+  [PASS] Link loss active
+  [PASS] Wind disturbance active
+  Active failures: ['gps_loss', 'battery_degradation', 'wind_disturbance', 'link_loss']
+
+======================================================================
+  12. FAILURE PROPAGATION: Sim → ROS2 → Sync → Twin → Snap → Replay
+======================================================================
+  Drone 1 post-failure battery: 75.0%
+  Drone 2 post-failure health: DroneHealthStatus.OK
+  Drone 3 post-failure state: DroneActivityState.FAIL
+  [PASS] Drone 1 battery degraded (<100%)
+  [PASS] Post-failure drone 1 sync accepted
+  [PASS] Post-failure drone 2 sync accepted
+  [PASS] Post-failure drone 3 sync accepted
+  Twin active_failures: ['battery_degradation', 'gps_loss', 'link_loss', 'wind_disturbance']
+  Twin global_health: CRITICAL
+  Twin environment wind: 14.0 m/s
+  [PASS] Twin has 4 active failures
+  [PASS] Twin reflects battery degradation
+  [PASS] Twin reflects GPS loss
+  [PASS] Twin reflects link loss
+  [PASS] Twin reflects wind disturbance
+  [PASS] Twin drone 1 battery degraded
+  [PASS] Twin drone 3 communication lost
+  Failure snapshot: snap-000005
+
+======================================================================
+  13. DETERMINISTIC FAILURE REPLAY
+======================================================================
+  [PASS] Failure replay returns state
+  [PASS] Replayed failures == original failures
+  Drone 1 replay frames: 5
+  [PASS] Drone 1 replay has frames
+  [PASS] Replay shows drone 1 battery degraded
+  [PASS] Replay is deterministic (A == B)
+
+======================================================================
+  14. STATE CONSISTENCY VERIFICATION
+======================================================================
+  Total sync events: 10
+  Rejected updates: 0
+  [PASS] No rejected updates during valid sync
+  [PASS] Final state total_drones == 3
+  [PASS] Final state drone_states length == 3
+  [PASS] Snapshot versions are monotonically increasing
+  [PASS] No duplicate versions
+
+======================================================================
+  15. ARCHITECTURE COMPLIANCE
+======================================================================
+  [PASS] 0 forbidden imports across 7 modules (found 0)
+
+======================================================================
+  16. NO DECISION-MAKING LOGIC
+======================================================================
+  [PASS] 0 decision-making methods (found 0)
+  [PASS] No planning logic in Digital Twin
+  [PASS] No scheduling logic in Digital Twin
+  [PASS] No optimization logic in Digital Twin
+  [PASS] No Fleet Manager logic in Digital Twin
+  [PASS] No Hive logic in Digital Twin
+
+======================================================================
+  FINAL SUMMARY
+======================================================================
+  Total checks: 78
+  PASSED: 78
+  FAILED: 0
+  Snapshots created: 5
+  Replay timelines generated: 2 (full + drone)
+  Sync events: 10
+  Architecture violations: 0
+  Decision-making violations: 0
+
+  *** VALIDATION PASSED — Phase 10B Digital Twin APPROVED ***
