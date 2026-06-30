@@ -1,0 +1,185 @@
+Output from command in shell default:
+
+======================================================================
+  1. SIMULATION CORE STARTUP
+======================================================================
+  SimulationCore created with num_drones=3, seed=42
+  Drone IDs: [1, 2, 3]
+  Tick count at start: 0
+  [PASS] SimulationCore initialized successfully
+  [PASS] Tick count starts at 0
+
+======================================================================
+  2. SPAWN 3 VIRTUAL DRONES
+======================================================================
+  [PASS] 3 drones registered
+  [PASS] Drone IDs are [1, 2, 3]
+  Drone 1: state=grounded, battery=100.0%, connected=True
+  [PASS] Drone 1 alive and connected
+  Drone 2: state=grounded, battery=100.0%, connected=True
+  [PASS] Drone 2 alive and connected
+  Drone 3: state=grounded, battery=100.0%, connected=True
+  [PASS] Drone 3 alive and connected
+
+======================================================================
+  3. INDEPENDENT ROS2 STATE PER DRONE
+======================================================================
+  Drone 1 ROS2 state: ACTIVE
+  Drone 2 ROS2 state: IDLE
+  Drone 3 ROS2 state: None
+  [PASS] Drone 1 has independent state on bus
+  [PASS] Drone 2 has independent state on bus
+  [PASS] Drone 1 and Drone 2 have different states
+  Active ROS2 topics: ['/drone_1/battery', '/drone_1/position', '/drone_1/state'
+, '/drone_2/battery', '/drone_2/position', '/drone_2/state']
+  [PASS] /drone_1/state exists
+  [PASS] /drone_2/state exists
+  [PASS] /drone_1/battery exists
+  [PASS] /drone_1/position exists
+  [PASS] /drone_2/battery exists
+  [PASS] /drone_2/position exists
+
+======================================================================
+  4. MAVLINK BRIDGE RECEIVES COMMANDSCHEMA
+======================================================================
+  MAVLink Bridge command log length: 3
+    cmd=arm-1 mavlink=MAV_CMD_COMPONENT_ARM_DISARM status=ACK attempts=1
+    cmd=arm-2 mavlink=MAV_CMD_COMPONENT_ARM_DISARM status=ACK attempts=1
+    cmd=takeoff-1 mavlink=MAV_CMD_NAV_TAKEOFF status=ACK attempts=1
+  [PASS] Bridge received commands via CommandSchema
+  [PASS] All logged commands have MAVLink command names
+  GOTO command result: success
+  [PASS] GOTO translated to MAV_CMD_NAV_WAYPOINT
+
+======================================================================
+  5. ACK/NACK FLOW
+======================================================================
+  LAND drone 1 (valid): status=success
+  [PASS] Valid command gets ACK (SUCCESS)
+  TAKEOFF drone 1 (grounded, not armed): status=rejected
+  [PASS] Invalid state command gets NACK (REJECTED)
+  NACK entries in log: 1
+    Last NACK attempts: 3
+  [PASS] NACK command retried 3 times
+  Bridge TIMEOUT_MS: 3000
+  Bridge MAX_RETRIES: 3
+  [PASS] Timeout is 3000ms
+  [PASS] Max retries is 3
+
+======================================================================
+  6. FAILURE INJECTION — ALL 4 TYPES
+======================================================================
+  All 3 drones armed and in flight
+
+  --- Battery Degradation ---
+    Drone 1 battery: 100.0% → 75.0%
+    Drone 2 battery (unaffected): 100.0%
+  [PASS] Battery degradation applied to drone 1
+  [PASS] Drone 2 unaffected by targeted failure
+
+  --- GPS Loss ---
+    Drone 2 GPS available: False
+    Drone 2 GPS accuracy: 999.0m
+  [PASS] GPS loss applied to drone 2
+  [PASS] Drone 1 GPS unaffected
+
+  --- Communication Loss ---
+    Drone 3 link available: False
+    Drone 3 connected: False
+  [PASS] Link loss applied to drone 3
+  [PASS] Drone 3 disconnected via link loss
+
+  --- Wind Disturbance ---
+    Drone 1 wind speed: 14.35 m/s
+    Drone 1 wind direction: 99.0°
+  [PASS] Wind disturbance applied
+
+  Active failures: ['link_loss', 'gps_loss', 'battery_degradation', 'wind_distur
+bance']
+    Failure event log (5 events):
+      [critical] drone=2 type=gps_loss: GPS signal lost
+      [critical] drone=2 type=gps_loss: GPS signal lost
+      [critical] drone=3 type=link_loss: Communication link lost
+      [critical] drone=2 type=gps_loss: GPS signal lost
+      [critical] drone=3 type=link_loss: Communication link lost
+
+======================================================================
+  7. ROS2 STATE UPDATED AFTER FAILURES
+======================================================================
+  Drone 1 bus state: battery=55.0%
+  Drone 2 bus state: state=ACTIVE
+  Drone 3 bus state: health=CRITICAL, state=FAIL
+  [PASS] Drone 1 battery degradation reflected in ROS2
+  [PASS] Drone 3 link loss reflected as CRITICAL health in ROS2
+  [PASS] Drone 3 shows FAIL state after link loss
+  Global state: total=3, active=2, fail=1
+  [PASS] Global state reflects failure (fail_count > 0)
+
+======================================================================
+  8. NO PLANNING LOGIC IN SIMULATION
+======================================================================
+  [PASS] simulation/__init__.py: no planning imports
+  [PASS] simulation/__init__.py: no Hive imports
+  [PASS] simulation/mavlink_bridge.py: no planning imports
+  [PASS] simulation/mavlink_bridge.py: no Hive imports
+  [PASS] simulation/ros2_swarm_bus.py: no planning imports
+  [PASS] simulation/ros2_swarm_bus.py: no Hive imports
+  [PASS] simulation/failure_injection.py: no planning imports
+  [PASS] simulation/failure_injection.py: no Hive imports
+  [PASS] simulation/sim_core.py: no planning imports
+  [PASS] simulation/sim_core.py: no Hive imports
+  AST scan: 0 planning imports, 0 Hive imports
+
+======================================================================
+  9. NO DECISION-MAKING IN SIMULATION
+======================================================================
+  [PASS] No decision-making methods found in simulation
+    Scanned 5 files for 12 decision keywords: CLEAN
+  [PASS] ROS2 bus contains no computation/logic methods
+  [PASS] DroneStateMessage is frozen dataclass
+  [PASS] SwarmGlobalState is frozen dataclass
+
+======================================================================
+  10. ACTIVE SYSTEM STATE
+======================================================================
+  Active drones: [1, 2, 3]
+    Drone 1: flight_state=in_flight, battery=55.0%, connected=True
+    Drone 2: flight_state=in_flight, battery=100.0%, connected=True
+    Drone 3: flight_state=in_flight, battery=100.0%, connected=False
+
+ROS2 active topics (10):
+    /drone_1/battery
+    /drone_1/position
+    /drone_1/state
+    /drone_2/battery
+    /drone_2/position
+    /drone_2/state
+    /drone_3/battery
+    /drone_3/position
+    /drone_3/state
+    /swarm/global_state
+
+MAVLink Bridge command log (6 entries):
+    ACK: 6
+    NACK: 0
+
+Failure events (5):
+    [gps_loss] drone 2: GPS signal lost
+    [gps_loss] drone 2: GPS signal lost
+    [link_loss] drone 3: Communication link lost
+    [gps_loss] drone 2: GPS signal lost
+    [link_loss] drone 3: Communication link lost
+
+======================================================================
+  VALIDATION SUMMARY
+======================================================================
+  Passed: 49
+  Failed: 0
+  Total:  49
+  Verdict: VALIDATED
+
+======================================================================
+  FINAL VERDICT: VALIDATED
+======================================================================
+
+Exit code: 0
