@@ -349,6 +349,8 @@ class SimulationCore:
             activity = FLIGHT_STATE_TO_ACTIVITY.get(
                 telemetry.flight_state, DroneActivityState.IDLE,
             )
+            if not telemetry.is_connected:
+                activity = DroneActivityState.FAIL
             if activity == DroneActivityState.ACTIVE:
                 active.append(drone_id)
             elif activity == DroneActivityState.FAIL:
