@@ -58,7 +58,24 @@ export const useDroneStore = create<DroneStoreState>((set) => ({
       const updated = prev.drones.map((d) =>
         d.drone_id === drone.drone_id ? drone : d
       );
-      return { drones: updated };
+      const histories = { ...prev.droneHistories };
+      const entry: DroneHistoryEntry = {
+        timestamp_ms: drone.last_update_ms,
+        battery_pct: drone.battery_pct,
+        altitude_m: drone.position.altitude_m,
+        speed: Math.sqrt(
+          drone.velocity.vx ** 2 +
+            drone.velocity.vy ** 2 +
+            drone.velocity.vz ** 2
+        ),
+        health: drone.health,
+      };
+      const existing = histories[drone.drone_id] ?? [];
+      histories[drone.drone_id] = [
+        ...existing.slice(-MAX_HISTORY_LENGTH + 1),
+        entry,
+      ];
+      return { drones: updated, droneHistories: histories };
     }),
 
   reset: () =>
