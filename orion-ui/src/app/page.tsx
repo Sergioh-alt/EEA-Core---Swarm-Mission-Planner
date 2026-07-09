@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { PageShell } from "@/components/common/PageShell";
 import { MetricCard } from "@/components/common/MetricCard";
 import { StatusDot } from "@/components/common/StatusDot";
 import { MissionStatusBadge } from "@/components/common/MissionStatusBadge";
 import { useSwarmStore } from "@/stores/swarmStore";
 import { useAlertStore } from "@/stores/alertStore";
-import { Plane, AlertTriangle, Activity, Battery } from "lucide-react";
+import { Plane, AlertTriangle, Activity, Battery, Radio } from "lucide-react";
 
 export default function DashboardPage() {
   const swarmState = useSwarmStore((s) => s.swarmState);
@@ -54,6 +55,16 @@ export default function DashboardPage() {
           value={unreadAlerts}
           icon={<Battery className="h-4 w-4" />}
         />
+      </div>
+
+      <div className="mt-4">
+        <Link
+          href="/control"
+          className="inline-flex items-center gap-2 rounded-md bg-blue-600/20 border border-blue-500/30 px-4 py-2 text-sm text-blue-400 hover:bg-blue-600/30 transition-colors"
+        >
+          <Radio className="h-4 w-4" />
+          Open Mission Control
+        </Link>
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
