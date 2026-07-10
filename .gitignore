@@ -48,3 +48,9 @@ ENV/
 *~
 .DS_Store
 Thumbs.db
+
+# The Python build ignores above (e.g. `lib/`, `build/`) are unanchored and
+# would otherwise exclude the Next.js UI source directory `orion-ui/src/lib/`.
+# Re-include it so UI source is always tracked.
+!orion-ui/src/lib/
+!orion-ui/src/lib/**
