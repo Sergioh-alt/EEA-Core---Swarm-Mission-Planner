@@ -6,7 +6,7 @@ interface BatteryIndicatorProps {
   percentage: number;
   voltage?: number;
   showLabel?: boolean;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   className?: string;
 }
 
@@ -17,6 +17,7 @@ function getBatteryColor(pct: number): string {
 }
 
 const BAR_HEIGHTS = {
+  xs: "h-1.5",
   sm: "h-2",
   md: "h-3",
   lg: "h-4",

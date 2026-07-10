@@ -14,6 +14,7 @@ import {
   BarChart3,
   Rocket,
   Layers,
+  Radio,
 } from "lucide-react";
 
 interface NavItem {
@@ -27,6 +28,11 @@ const NAV_ITEMS: NavItem[] = [
     label: "Dashboard",
     href: "/",
     icon: <LayoutDashboard className="h-5 w-5" />,
+  },
+  {
+    label: "Control",
+    href: "/control",
+    icon: <Radio className="h-5 w-5" />,
   },
   {
     label: "Fleet",
@@ -119,7 +125,7 @@ export function Sidebar() {
 
       <div className="border-t border-neutral-800 px-4 py-3">
         <p className="text-[10px] text-neutral-600 text-center">
-          ORION GCS v10C.2
+          ORION GCS v10C.3
         </p>
       </div>
     </aside>
