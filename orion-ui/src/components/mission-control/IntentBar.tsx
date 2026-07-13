@@ -1,15 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useMissionStore } from "@/stores/missionStore";
 import { MissionStatus } from "@/contracts/types";
+import type { IntentType } from "@/contracts/intents";
+import { getTwinRESTClient } from "@/lib/restClient";
 import { cn } from "@/lib/utils";
 import { Play, Pause, Square, RotateCcw } from "lucide-react";
 
-type IntentType = "START_MISSION" | "PAUSE" | "STOP" | "REPLAY";
-
 interface IntentAction {
-  type: IntentType;
+  key: string;
   label: string;
   icon: React.ReactNode;
   color: string;
@@ -18,28 +19,28 @@ interface IntentAction {
 
 const INTENT_ACTIONS: IntentAction[] = [
   {
-    type: "START_MISSION",
+    key: "start",
     label: "Start",
     icon: <Play className="h-3.5 w-3.5" />,
     color: "bg-green-600 hover:bg-green-500 text-white",
     disabledWhen: [MissionStatus.RUNNING],
   },
   {
-    type: "PAUSE",
+    key: "pause",
     label: "Pause",
     icon: <Pause className="h-3.5 w-3.5" />,
     color: "bg-yellow-600 hover:bg-yellow-500 text-white",
     disabledWhen: [MissionStatus.IDLE, MissionStatus.PAUSED, MissionStatus.COMPLETED, MissionStatus.FAILED],
   },
   {
-    type: "STOP",
+    key: "stop",
     label: "Stop",
     icon: <Square className="h-3.5 w-3.5" />,
     color: "bg-red-600 hover:bg-red-500 text-white",
     disabledWhen: [MissionStatus.IDLE, MissionStatus.COMPLETED, MissionStatus.FAILED],
   },
   {
-    type: "REPLAY",
+    key: "replay",
     label: "Replay",
     icon: <RotateCcw className="h-3.5 w-3.5" />,
     color: "bg-blue-600 hover:bg-blue-500 text-white",
@@ -49,27 +50,41 @@ const INTENT_ACTIONS: IntentAction[] = [
 
 export function IntentBar() {
   const status = useMissionStore((s) => s.status);
-  const [pendingIntent, setPendingIntent] = useState<IntentType | null>(null);
+  const router = useRouter();
+  const [pending, setPending] = useState<string | null>(null);
 
-  const submitIntent = async (intentType: IntentType) => {
-    setPendingIntent(intentType);
-    // Intent submission goes to /api/intents → backend → Hive
-    // UI never executes logic, only submits intents
+  // The UI only submits an intent — the backend (Hive) accepts or rejects.
+  const submit = async (intentType: IntentType) => {
     try {
-      await fetch("/api/intents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: intentType,
-          timestamp_ms: Date.now(),
-          source: "operator",
-        }),
+      await getTwinRESTClient().submitIntent({
+        intent_type: intentType,
+        payload: {},
+        user_id: "operator",
+        timestamp_ms: Date.now(),
       });
     } catch {
-      // Intent submission failed — in production, the
-      // connection status would reflect this
+      // Rejected / unreachable — connection status reflects transport health.
+    }
+  };
+
+  const onAction = async (key: string) => {
+    setPending(key);
+    try {
+      if (key === "replay") {
+        router.push("/mission/replay");
+        return;
+      }
+      if (key === "start") {
+        await submit(
+          status === MissionStatus.PAUSED ? "RESUME_MISSION" : "START_MISSION"
+        );
+      } else if (key === "pause") {
+        await submit("PAUSE_MISSION");
+      } else if (key === "stop") {
+        await submit("STOP_MISSION");
+      }
     } finally {
-      setPendingIntent(null);
+      setPending(null);
     }
   };
 
@@ -80,12 +95,12 @@ export function IntentBar() {
       </span>
       {INTENT_ACTIONS.map((action) => {
         const disabled = action.disabledWhen.includes(status);
-        const isPending = pendingIntent === action.type;
+        const isPending = pending === action.key;
 
         return (
           <button
-            key={action.type}
-            onClick={() => submitIntent(action.type)}
+            key={action.key}
+            onClick={() => onAction(action.key)}
             disabled={disabled || isPending}
             className={cn(
               "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[10px] font-medium transition-all",

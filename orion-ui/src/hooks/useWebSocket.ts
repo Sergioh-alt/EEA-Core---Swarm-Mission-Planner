@@ -2,27 +2,28 @@
 
 import { useEffect, useRef } from "react";
 import { getTwinWSClient, TwinWebSocketClient } from "@/lib/wsClient";
+import { wsBaseUrl, isLiveMode } from "@/lib/config";
 
 /**
- * Connects to the Digital Twin WebSocket when a backend URL is configured
- * via NEXT_PUBLIC_TWIN_WS_URL. When unset (local dev / validation with no
- * backend), the connection is skipped and the mock data provider supplies
- * state instead — avoiding noisy connection-refused errors.
+ * Connects to the Digital Twin WebSocket when a backend is configured via
+ * NEXT_PUBLIC_TWIN_API_URL (LIVE mode). When unset (local dev / validation
+ * with no backend), the connection is skipped and the development-only mock
+ * data provider supplies state instead — avoiding connection-refused noise.
  */
 export function useWebSocket(baseUrl?: string): TwinWebSocketClient {
-  const resolvedBaseUrl = baseUrl ?? process.env.NEXT_PUBLIC_TWIN_WS_URL;
+  const resolvedBaseUrl = baseUrl ?? wsBaseUrl();
   const clientRef = useRef<TwinWebSocketClient>(
     getTwinWSClient(resolvedBaseUrl)
   );
 
   useEffect(() => {
-    if (!resolvedBaseUrl) return;
+    if (!isLiveMode() && !baseUrl) return;
     const client = clientRef.current;
     client.connect();
     return () => {
       client.disconnect();
     };
-  }, [resolvedBaseUrl]);
+  }, [baseUrl]);
 
   return clientRef.current;
 }
