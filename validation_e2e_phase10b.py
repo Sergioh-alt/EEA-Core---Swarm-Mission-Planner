@@ -614,8 +614,8 @@ if __name__ == "__main__":
     print(output)
 
     # Save to file
-    os.makedirs("docs/validation_testing", exist_ok=True)
-    output_path = "docs/validation_testing/phase_10b_e2e_validation_output.txt"
+    os.makedirs("docs/validation/logs", exist_ok=True)
+    output_path = "docs/validation/logs/phase_10b_e2e_validation_output.txt"
     with open(output_path, "w") as f:
         f.write(output)
     print(f"\n  Report saved to: {output_path}")
