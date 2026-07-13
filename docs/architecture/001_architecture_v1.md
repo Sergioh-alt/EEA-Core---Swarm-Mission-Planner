@@ -152,4 +152,4 @@ The Streamlit interface (`ui/`) is separated from the core logic:
 
 ## Design Decisions
 
-See `/docs/decisions/` for Architecture Decision Records (ADRs).
+See `/docs/adr/` for Architecture Decision Records (ADRs).
