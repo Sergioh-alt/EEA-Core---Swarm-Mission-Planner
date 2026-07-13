@@ -1,176 +1,408 @@
 PHASE 10 — MASTER PROTOCOL
-Simulation Core + Digital Twin + UI Redesign Architecture
 
-Project: Ecosistema Orión
-Phase: 10 (A / B / C split execution model)
-Purpose: Hardware-ready simulation, deterministic digital twin, and full UI redesign without architectural coupling
-Dependency: Phase 9.7 must be PASSED and LOCKED
+Simulation Core
+Digital Twin
+UI Redesign Architecture
+
+Project:
+Ecosistema Orión
+
+Status:
+Active
+
+Dependency:
+Phase 9.7 fully completed and locked.
+
+────────────────────────────────────────
 
 1. CORE PRINCIPLE
 
-Phase 10 introduces full system observability and simulation realism, but does not modify core decision architecture.
+Phase 10 introduces complete operational observability without modifying
+the decision architecture.
 
-The system remains strictly separated:
+Responsibilities remain strictly separated.
 
-Hive = only decision authority
-HAL = execution + translation only
-Simulation = physical model only
-Digital Twin = state reconciliation only
-UI = visualization only
+Hive
 
-No cross-layer logic is allowed.
+Decision authority only.
+
+HAL
+
+Execution only.
+
+Simulation
+
+Physical behavior only.
+
+Digital Twin
+
+State reconciliation only.
+
+UI
+
+Visualization and operator intents only.
+
+Cross-layer logic is forbidden.
+
+────────────────────────────────────────
 
 2. PHASE STRUCTURE
 
-Phase 10 is executed in three sequential stages:
+Phase 10 consists of three major blocks.
 
-10A — Simulation Core
-10B — Digital Twin
-10C — UI Redesign
+10A
 
-Each phase must be fully validated before advancing to the next.
+Simulation Core
+
+10B
+
+Digital Twin
+
+10C
+
+UI Redesign
+
+The UI phase is further divided into five sequential implementation stages.
+
+10C.1
+
+UI Architecture
+
+10C.2
+
+UI Foundation
+
+10C.3
+
+Mission Control UI
+
+10C.4
+
+Advanced UI Integration
+
+10C.5
+
+Final Validation
+
+No phase may begin before the previous one is fully validated.
+
+────────────────────────────────────────
 
 3. PHASE 10A — SIMULATION CORE
+
 Objective
 
-Build a realistic multi-drone physical simulation environment capable of executing MAVLink-based control with ROS2 telemetry streaming.
+Provide a deterministic multi-drone simulation environment.
+
+Deliverables
+
+Simulation Core
+
+PX4 SITL
+
+Gazebo
+
+ROS2 Bus
+
+MAVLink Bridge
+
+Failure Injection
+
+Simulation Validation
+
+End-to-end Validation
+
+Status
+
+Completed.
+
+────────────────────────────────────────
+
+4. PHASE 10B — DIGITAL TWIN
+
+Objective
+
+Create the deterministic runtime state representation.
+
+Deliverables
+
+Digital Twin
+
+Sync Engine
+
+Snapshots
+
+Replay
+
+Immutable State
+
+State Reconciliation
+
+End-to-end Validation
+
+Status
+
+Completed.
+
+────────────────────────────────────────
+
+5. PHASE 10C — UI REDESIGN
+
+Objective
+
+Develop a modern Mission Control interface without introducing operational
+logic.
+
+────────────────────
+
+Phase 10C.1
+
+UI Architecture
+
+Deliverables
+
+Architecture
+
+Navigation
+
+Data Flow
+
+Contracts
+
+Interaction Model
+
+Scalability
+
+Status
+
+Completed.
+
+────────────────────
+
+Phase 10C.2
+
+UI Foundation
+
+Deliverables
+
+Next.js foundation
+
+Layout
+
+Theme
+
+Navigation
+
+Shared Components
+
+Stores
+
+REST
+
+WebSocket
+
+Status
+
+Completed.
+
+────────────────────
+
+Phase 10C.3
+
+Mission Control UI
+
+Deliverables
+
+Mission Dashboard
+
+Fleet Panel
+
+Mission Panel
+
+Deployment
+
+Replay
+
+Analytics
+
+Alerts
+
+Settings
+
+Operational Map
+
+Mission Control
+
+Manual UI Validation
+
+Fresh Clone Validation
+
+Status
+
+Completed.
+
+────────────────────
+
+Phase 10C.4
+
+Advanced UI Integration
+
+Objective
+
+Transform the frontend into a fully operational Digital Twin visualization.
 
 Scope
-PX4 SITL virtual drones (2–3 units minimum)
-Gazebo simulation environment
-MAVLink 2 command bridge
-ROS2 topic communication layer
-Required ROS2 Topics
-/drone_{id}/telemetry
-/drone_{id}/state
-/swarm/events
-/swarm/health
-Rules
-Simulation is read-only from system perspective
-Simulation does not generate decisions
-Simulation does not modify Hive state
-Simulation must mirror HAL schemas exactly
-Deliverable
-Functional multi-drone simulation
-MAVLink command execution loop
-Real-time telemetry stream via ROS2
-4. PHASE 10B — DIGITAL TWIN
+
+Real Digital Twin synchronization
+
+Replay Timeline
+
+Mission playback
+
+Historical state browsing
+
+Live telemetry
+
+Layer management
+
+2D / 3D visualization
+
+Performance optimization
+
+Responsive refinement
+
+Future hardware compatibility
+
+Status
+
+Pending.
+
+────────────────────
+
+Phase 10C.5
+
+Final Validation
+
 Objective
 
-Create a deterministic system state reconciliation layer that reflects the real-time and simulated state of the entire system.
+Validate the entire frontend as production-ready.
 
-Core Concept
+Required Validation
 
-Digital Twin = unified system state representation across:
+Architecture
 
-HAL real telemetry
-Simulation telemetry
-Hive mission state
-Sync Engine Rules
+Contracts
 
-Priority order:
+Boundary
 
-HAL real telemetry (highest priority)
-Simulation telemetry
-Hive predicted state
+Replay
 
-All state updates must be timestamped and deterministic.
+REST
 
-Replay System
-Full mission replay capability
-Time-based state reconstruction
-Debuggable event history
-Rules
-Digital Twin is read-only for UI
-Digital Twin cannot send commands
-Digital Twin cannot influence Hive decisions
-Deliverable
-Unified state engine
-Real-time synchronization system
-Replay and historical playback system
-5. PHASE 10C — UI REDESIGN
-Objective
+WebSocket
 
-Build a full operational interface for system visualization and monitoring without introducing any control logic.
+Performance
 
-Stack
-Next.js 14
-WebSockets (real-time telemetry)
-Mapbox GL (2D field visualization)
-Recharts (telemetry analytics)
-UI Components
-1. Field Map
-Real farm polygon rendering
-Drone positions in real time
-Mission zones and coverage areas
-2. Fleet Panel
-Drone status (battery, state, mode)
-Live updates per unit
-3. Swarm Visualization
-Real-time movement of drones
-State-based color system
-4. Mission Timeline
-Playback system (play, pause, scrub)
-Event-based visualization
-Rules
-UI is read-only
-UI cannot send commands directly to HAL
-UI interacts only with Digital Twin layer
-No decision logic allowed in frontend
-Deliverable
-Fully functional real-time dashboard
-Interactive map-based control visualization
-Live telemetry integration via Digital Twin
+Responsive
+
+Manual Validation
+
+Fresh Clone Validation
+
+End-to-End Validation
+
+Regression
+
+Status
+
+Pending.
+
+────────────────────────────────────────
+
 6. GLOBAL ARCHITECTURAL RULES
-HARD BOUNDARIES
 
-The following must never be violated:
+Hive remains the only decision authority.
 
-Hive does not receive data from UI
-UI does not communicate with HAL directly
-Simulation cannot influence real system state
-Digital Twin cannot execute commands
-HAL cannot perform decision-making
-ROS2 and MAVLink remain transport layers only
-DATA FLOW MODEL
+HAL remains execution-only.
 
-Correct system flow:
+Simulation remains physics-only.
 
-Hive → HAL → MAVLink → Simulation (or Real Drone) → Telemetry → ROS2 → Digital Twin → UI
+Digital Twin remains state-only.
 
-UI is strictly end-point visualization only.
+UI remains visualization-only.
 
-7. VALIDATION REQUIREMENTS
+No direct UI → HAL communication.
 
-Each phase must pass:
+No direct UI → ROS2 communication.
 
-7.1 Isolation Tests
-No cross-layer imports
-No function-level coupling across boundaries
-7.2 Schema Consistency
-HAL CommandSchema == Simulation CommandSchema
-HAL TelemetrySchema == Digital Twin schema
-7.3 Regression Safety
-All Phase 9.1 → 9.7 tests must pass
-7.4 Leak Detection
-AST-based detection of forbidden dependencies
-No ROS2 logic inside Hive
-No UI writes into system state
+No direct UI → MAVLink communication.
+
+────────────────────────────────────────
+
+7. VALIDATION PIPELINE
+
+Every implementation phase must complete:
+
+Architecture Review
+
+Boundary Validation
+
+Regression Tests
+
+Manual Validation
+
+Fresh Clone Validation
+
+Documentation Update
+
+Merge Approval
+
+Only after passing all validations may the next phase begin.
+
+────────────────────────────────────────
+
 8. OUTPUT REQUIREMENTS
 
-Each phase must produce:
+Every phase must generate:
 
-Architecture validation report
-Contract compliance report
-Leak detection report
-Regression summary
-System readiness verdict
-9. FINAL VERDICT RULE
+Architecture Report
 
-Phase 10 is only considered complete when:
+Validation Report
 
-10A passes fully
-10B passes fully
-10C passes fully
-No architectural violations exist
-System remains deterministic and layered
+Boundary Report
+
+Regression Summary
+
+Implementation Report
+
+Readiness Verdict
+
+Documentation Update
+
+────────────────────────────────────────
+
+9. FINAL VERDICT
+
+Phase 10 will only be considered complete when:
+
+10A completed
+
+10B completed
+
+10C.1 completed
+
+10C.2 completed
+
+10C.3 completed
+
+10C.4 completed
+
+10C.5 completed
+
+No architectural violations exist.
+
+No boundary violations exist.
+
+The frontend operates exclusively through the Digital Twin.
+
+The system is deterministic, scalable, and ready for real hardware integration.
