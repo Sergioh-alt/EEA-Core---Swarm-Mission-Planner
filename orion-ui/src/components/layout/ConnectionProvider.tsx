@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useWebSocket } from "@/hooks/useWebSocket";
-import { useConnectionStore } from "@/stores/connectionStore";
+import { isLiveMode } from "@/lib/config";
 import { startMockDataProvider, stopMockDataProvider, isMockRunning } from "@/lib/mockDataProvider";
 
 interface ConnectionProviderProps {
@@ -10,23 +10,21 @@ interface ConnectionProviderProps {
 }
 
 export function ConnectionProvider({ children }: ConnectionProviderProps) {
-  // Initialize WebSocket connection to Digital Twin
+  // LIVE mode: connect to the real Digital Twin API over WebSocket.
   useWebSocket();
 
   useEffect(() => {
-    // Start mock data provider when no real WebSocket backend is available.
-    // In production, the WebSocket hook connects to the Digital Twin and
-    // the mock provider remains dormant.
-    // Runs once on mount; the guard prevents duplicate intervals.
-    const timer = setTimeout(() => {
-      const status = useConnectionStore.getState().status;
-      if (status !== "CONNECTED" && !isMockRunning()) {
-        startMockDataProvider();
-      }
-    }, 1000);
+    // Development-only fallback: when no Digital Twin API server is configured
+    // (NEXT_PUBLIC_TWIN_API_URL unset), the mock provider supplies state so a
+    // fresh clone still renders. In LIVE mode the mock never starts — the UI
+    // is driven entirely by the Digital Twin.
+    if (isLiveMode()) return;
+
+    if (!isMockRunning()) {
+      startMockDataProvider();
+    }
 
     return () => {
-      clearTimeout(timer);
       stopMockDataProvider();
     };
   }, []);

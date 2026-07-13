@@ -7,10 +7,11 @@
 
 import { WS_ENDPOINT } from "@/contracts/api";
 import type { ServerMessage, ClientMessage } from "@/contracts/api";
-import type { SwarmState, Alert, DroneState } from "@/contracts/types";
+import type { SwarmState, Alert, DroneState, MissionInfo } from "@/contracts/types";
 import { useSwarmStore } from "@/stores/swarmStore";
 import { useDroneStore } from "@/stores/droneStore";
 import { useAlertStore } from "@/stores/alertStore";
+import { useMissionStore } from "@/stores/missionStore";
 import { useConnectionStore } from "@/stores/connectionStore";
 import type { ConnectionStatus } from "@/stores/connectionStore";
 
@@ -23,6 +24,7 @@ export class TwinWebSocketClient {
   private url: string;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private shouldReconnect = true;
+  private seenEventIds = new Set<string>();
 
   constructor(baseUrl?: string) {
     const wsBase = baseUrl ?? this.inferWsUrl();
@@ -98,6 +100,19 @@ export class TwinWebSocketClient {
       case "DRONE_STATE_DELTA": {
         const droneState = message.payload as DroneState;
         useDroneStore.getState().updateDrone(droneState);
+        break;
+      }
+      case "MISSION_STATUS": {
+        const mission = message.payload as MissionInfo;
+        const store = useMissionStore.getState();
+        store.setMission(mission.mission_id, mission.status);
+        store.setProgress(mission.progress);
+        for (const evt of mission.events) {
+          if (!this.seenEventIds.has(evt.id)) {
+            this.seenEventIds.add(evt.id);
+            store.addEvent(evt);
+          }
+        }
         break;
       }
       case "ALERT": {

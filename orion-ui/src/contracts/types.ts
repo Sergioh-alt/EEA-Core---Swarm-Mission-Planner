@@ -175,3 +175,70 @@ export interface Alert {
   readonly active: boolean;
   readonly resolved_ms: number | null;
 }
+
+// =========================================================================
+// Transport DTOs (Phase 10C.4) — served by the Digital Twin API layer.
+// These carry backend-provided geometry/analytics/mission lifecycle. The UI
+// only visualizes them; it never computes or invents these values.
+// =========================================================================
+
+export interface LatLng {
+  readonly lat: number;
+  readonly lng: number;
+}
+
+export interface MissionGeometry {
+  readonly field_center: LatLng;
+  readonly field_polygon: readonly LatLng[];
+  readonly planned_routes: Readonly<Record<string, readonly LatLng[]>>;
+}
+
+export interface MissionEventDTO {
+  readonly id: string;
+  readonly timestamp_ms: number;
+  readonly type:
+    | "START"
+    | "PAUSE"
+    | "RESUME"
+    | "STOP"
+    | "FAILURE"
+    | "RECOVERY"
+    | "MILESTONE";
+  readonly message: string;
+}
+
+export interface MissionInfo {
+  readonly mission_id: string | null;
+  readonly status: MissionStatus;
+  readonly progress: number;
+  readonly start_ms: number | null;
+  readonly end_ms: number | null;
+  readonly events: readonly MissionEventDTO[];
+}
+
+export interface BatteryTrendPoint {
+  readonly version: number;
+  readonly timestamp_ms: number;
+  readonly battery_pct: number;
+}
+
+export interface FleetUtilizationPoint {
+  readonly version: number;
+  readonly timestamp_ms: number;
+  readonly active_drones: number;
+  readonly failed_drones: number;
+  readonly total_drones: number;
+}
+
+export interface AnalyticsData {
+  readonly snapshot_count: number;
+  readonly battery_trends: Readonly<Record<string, readonly BatteryTrendPoint[]>>;
+  readonly fleet_utilization: readonly FleetUtilizationPoint[];
+  readonly alert_frequency: Readonly<Record<string, number>>;
+  readonly mission: {
+    readonly mission_id: string | null;
+    readonly status: MissionStatus;
+    readonly progress: number;
+    readonly duration_ms: number;
+  };
+}

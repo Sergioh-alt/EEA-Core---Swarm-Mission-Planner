@@ -9,6 +9,7 @@ interface ReplayStoreState {
   currentFrame: ReplayFrame | null;
   setTimeline: (timeline: ReplayTimeline) => void;
   setFrameIndex: (index: number) => void;
+  jumpToTimestamp: (timestampMs: number) => void;
   play: () => void;
   pause: () => void;
   setSpeed: (speed: number) => void;
@@ -40,7 +41,38 @@ export const useReplayStore = create<ReplayStoreState>((set, get) => ({
     });
   },
 
-  play: () => set({ playing: true }),
+  jumpToTimestamp: (timestampMs: number) => {
+    const { timeline } = get();
+    if (!timeline || timeline.frames.length === 0) return;
+    let nearest = 0;
+    let bestDelta = Number.POSITIVE_INFINITY;
+    timeline.frames.forEach((frame, index) => {
+      const delta = Math.abs(frame.timestamp_ms - timestampMs);
+      if (delta < bestDelta) {
+        bestDelta = delta;
+        nearest = index;
+      }
+    });
+    set({
+      currentFrameIndex: nearest,
+      currentFrame: timeline.frames[nearest] ?? null,
+    });
+  },
+
+  play: () => {
+    const { timeline, currentFrameIndex } = get();
+    if (!timeline) return;
+    // Restart from the beginning when at the end.
+    if (currentFrameIndex >= timeline.total_frames - 1) {
+      set({
+        currentFrameIndex: 0,
+        currentFrame: timeline.frames[0] ?? null,
+        playing: true,
+      });
+      return;
+    }
+    set({ playing: true });
+  },
   pause: () => set({ playing: false }),
 
   setSpeed: (speed: number) =>

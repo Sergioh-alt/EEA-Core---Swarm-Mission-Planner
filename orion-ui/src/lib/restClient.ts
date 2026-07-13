@@ -6,8 +6,20 @@
  */
 
 import { API_ENDPOINTS } from "@/contracts/api";
-import type { SwarmState, DroneState, Snapshot, SnapshotMetadata, ReplayTimeline, DroneReplayTimeline } from "@/contracts/types";
+import type {
+  SwarmState,
+  DroneState,
+  Snapshot,
+  SnapshotMetadata,
+  ReplayTimeline,
+  DroneReplayTimeline,
+  MissionGeometry,
+  MissionInfo,
+  AnalyticsData,
+  Alert,
+} from "@/contracts/types";
 import type { UIIntent, IntentResponse } from "@/contracts/intents";
+import { restBaseUrl } from "@/lib/config";
 
 class TwinRESTClientError extends Error {
   constructor(
@@ -24,7 +36,7 @@ export class TwinRESTClient {
   private baseUrl: string;
 
   constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl ?? this.inferBaseUrl();
+    this.baseUrl = baseUrl ?? restBaseUrl() ?? this.inferBaseUrl();
   }
 
   private inferBaseUrl(): string {
@@ -69,10 +81,18 @@ export class TwinRESTClient {
     return this.request<Snapshot>(API_ENDPOINTS.SNAPSHOT(snapshotId));
   }
 
-  async startReplay(snapshotIds: string[]): Promise<ReplayTimeline> {
+  /**
+   * Request a replay timeline reconstructed from stored snapshots.
+   * The Digital Twin replay engine is version-range based; passing no range
+   * replays the full recorded history. Read-only.
+   */
+  async startReplay(range?: {
+    start_version?: number;
+    end_version?: number;
+  }): Promise<ReplayTimeline> {
     return this.request<ReplayTimeline>(API_ENDPOINTS.REPLAY, {
       method: "POST",
-      body: JSON.stringify({ snapshot_ids: snapshotIds }),
+      body: JSON.stringify(range ?? {}),
     });
   }
 
@@ -91,6 +111,22 @@ export class TwinRESTClient {
 
   async healthCheck(): Promise<{ status: string }> {
     return this.request<{ status: string }>(API_ENDPOINTS.HEALTH);
+  }
+
+  async getMissionGeometry(): Promise<MissionGeometry> {
+    return this.request<MissionGeometry>(API_ENDPOINTS.MISSION_GEOMETRY);
+  }
+
+  async getMissionStatus(): Promise<MissionInfo> {
+    return this.request<MissionInfo>(API_ENDPOINTS.MISSION_STATUS);
+  }
+
+  async getAnalytics(): Promise<AnalyticsData> {
+    return this.request<AnalyticsData>(API_ENDPOINTS.ANALYTICS);
+  }
+
+  async listAlerts(): Promise<Alert[]> {
+    return this.request<Alert[]>(API_ENDPOINTS.ALERTS);
   }
 }
 
