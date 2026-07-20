@@ -52,11 +52,18 @@ from backend.serializers import JSONObject
 # =========================================================================
 
 FIELD_CENTER = {"lat": 38.7223, "lng": -9.1393}
-FIELD_HALF_LAT = 0.004
-FIELD_HALF_LNG = 0.005
+FIELD_HALF_LAT = 0.0045
+FIELD_HALF_LNG = 0.0055
 CRUISE_ALT_M = 25.0
-ROUTE_ROWS = 24
-ROUTE_COL_SPAN = 0.004
+ROUTE_ROWS = 6
+ROUTE_LAT_MARGIN = 0.0035
+ROUTE_COL_HALF = 0.0035
+DRONE_LANE_OFFSET = 0.0009
+# Per-tick great-circle step (~0.00015 deg ≈ 16 m/s displayed telemetry).
+# Drones are stepped smoothly along the fixed route so telemetry-derived
+# speed stays realistic (Phase 10C.5 stability fix — replaces the previous
+# per-tick waypoint teleport that produced large instantaneous speeds).
+CRUISE_STEP_DEG = 0.00015
 
 
 def _field_polygon() -> list[dict[str, float]]:
@@ -70,13 +77,20 @@ def _field_polygon() -> list[dict[str, float]]:
 
 
 def _planned_route(drone_id: int) -> list[dict[str, float]]:
-    """Fixed lawnmower coverage path for a drone (static geometry)."""
-    offset = (drone_id - 1) * 0.002
+    """Fixed lawnmower coverage path for a drone (static geometry).
+
+    Rows are laid out inside the field polygon so the planned/executed
+    routes render consistently within the mission zone. A small per-drone
+    lateral offset separates the lanes; all lanes stay within the field.
+    """
+    offset = (drone_id - 1) * DRONE_LANE_OFFSET
+    rows = max(1, ROUTE_ROWS)
     route: list[dict[str, float]] = []
-    for r in range(ROUTE_ROWS):
-        start_lng = FIELD_CENTER["lng"] - ROUTE_COL_SPAN / 2 + offset
-        end_lng = FIELD_CENTER["lng"] + ROUTE_COL_SPAN / 2 + offset
-        lat = FIELD_CENTER["lat"] - 0.003 + r * 0.001
+    for r in range(rows):
+        frac = r / (rows - 1) if rows > 1 else 0.5
+        lat = FIELD_CENTER["lat"] - ROUTE_LAT_MARGIN + frac * (2 * ROUTE_LAT_MARGIN)
+        start_lng = FIELD_CENTER["lng"] - ROUTE_COL_HALF + offset
+        end_lng = FIELD_CENTER["lng"] + ROUTE_COL_HALF + offset
         if r % 2 == 0:
             route.append({"lat": lat, "lng": start_lng})
             route.append({"lat": lat, "lng": end_lng})
@@ -84,6 +98,22 @@ def _planned_route(drone_id: int) -> list[dict[str, float]]:
             route.append({"lat": lat, "lng": end_lng})
             route.append({"lat": lat, "lng": start_lng})
     return route
+
+
+def _route_metrics(route: list[dict[str, float]]) -> tuple[float, list[float]]:
+    """Return (total_length, suffix_lengths) in degrees along the route.
+
+    suffix_lengths[i] is the remaining path length from route[i] to the
+    final waypoint; suffix_lengths[0] equals the total path length.
+    """
+    n = len(route)
+    suffix = [0.0] * n
+    for i in range(n - 2, -1, -1):
+        dlat = route[i + 1]["lat"] - route[i]["lat"]
+        dlng = route[i + 1]["lng"] - route[i]["lng"]
+        suffix[i] = suffix[i + 1] + math.hypot(dlat, dlng)
+    total = suffix[0] if n else 0.0
+    return total, suffix
 
 
 # =========================================================================
@@ -104,7 +134,11 @@ _HEALTH_RANK = {HealthLevel.OK: 0, HealthLevel.WARNING: 1, HealthLevel.CRITICAL:
 class _DroneMissionState:
     """Per-drone scripted-mission bookkeeping (position stepping only)."""
     route: list[dict[str, float]]
+    total_len: float
+    suffix_len: list[float]
     index: int = 0
+    cur_lat: float = 0.0
+    cur_lng: float = 0.0
     prev_lat: float = 0.0
     prev_lng: float = 0.0
     prev_health: HealthLevel = HealthLevel.OK
@@ -137,10 +171,19 @@ class TwinRuntime:
 
         self._configure_failures()
 
-        self._drone_missions: dict[int, _DroneMissionState] = {
-            did: _DroneMissionState(route=_planned_route(did))
-            for did in self._sim.drone_ids
-        }
+        self._drone_missions: dict[int, _DroneMissionState] = {}
+        for did in self._sim.drone_ids:
+            route = _planned_route(did)
+            total_len, suffix_len = _route_metrics(route)
+            self._drone_missions[did] = _DroneMissionState(
+                route=route,
+                total_len=total_len,
+                suffix_len=suffix_len,
+                cur_lat=route[0]["lat"],
+                cur_lng=route[0]["lng"],
+                prev_lat=route[0]["lat"],
+                prev_lng=route[0]["lng"],
+            )
 
         self._mission_status = MissionStatus.IDLE
         self._mission_start_ms: Optional[int] = None
@@ -186,7 +229,12 @@ class TwinRuntime:
                 return True
             for did in self._sim.drone_ids:
                 self._arm_and_takeoff(did)
-                self._drone_missions[did].index = 0
+                ms = self._drone_missions[did]
+                ms.cur_lat = ms.route[0]["lat"]
+                ms.cur_lng = ms.route[0]["lng"]
+                ms.prev_lat = ms.route[0]["lat"]
+                ms.prev_lng = ms.route[0]["lng"]
+                ms.index = 1 if len(ms.route) > 1 else 0
             self._mission_status = MissionStatus.RUNNING
             self._mission_start_ms = _now_ms()
             self._mission_end_ms = None
@@ -302,14 +350,28 @@ class TwinRuntime:
         inj = self._sim.failure_injector
         for did in self._sim.drone_ids:
             ms = self._drone_missions[did]
-            wp = ms.route[ms.index]
             # A comm-lost drone cannot receive commands; hold position.
-            if inj.get_drone_failure_state(did).link_available:
-                self._goto(did, wp)
+            if not inj.get_drone_failure_state(did).link_available:
+                continue
+            target = ms.route[ms.index]
+            dlat = target["lat"] - ms.cur_lat
+            dlng = target["lng"] - ms.cur_lng
+            dist = math.hypot(dlat, dlng)
+            if dist <= CRUISE_STEP_DEG:
+                ms.cur_lat, ms.cur_lng = target["lat"], target["lng"]
                 if ms.index < len(ms.route) - 1:
                     ms.index += 1
+            else:
+                ratio = CRUISE_STEP_DEG / dist
+                ms.cur_lat += dlat * ratio
+                ms.cur_lng += dlng * ratio
+            self._goto(did, {"lat": ms.cur_lat, "lng": ms.cur_lng})
         if all(
             ms.index >= len(ms.route) - 1
+            and math.hypot(
+                ms.route[-1]["lat"] - ms.cur_lat,
+                ms.route[-1]["lng"] - ms.cur_lng,
+            ) <= CRUISE_STEP_DEG
             for ms in self._drone_missions.values()
         ):
             self._mission_status = MissionStatus.COMPLETED
@@ -418,8 +480,15 @@ class TwinRuntime:
     def _update_progress(self) -> None:
         totals = []
         for ms in self._drone_missions.values():
-            last = max(1, len(ms.route) - 1)
-            totals.append(min(1.0, ms.index / last))
+            total = ms.total_len
+            if total <= 0:
+                totals.append(1.0)
+                continue
+            remaining = ms.suffix_len[ms.index] + math.hypot(
+                ms.route[ms.index]["lat"] - ms.cur_lat,
+                ms.route[ms.index]["lng"] - ms.cur_lng,
+            )
+            totals.append(min(1.0, max(0.0, (total - remaining) / total)))
         self._progress = sum(totals) / len(totals) if totals else 0.0
 
     # -----------------------------------------------------------------

@@ -5,6 +5,7 @@ interface SwarmStoreState {
   swarmState: SwarmState | null;
   lastVersion: number;
   setSwarmState: (state: SwarmState) => void;
+  resetVersion: () => void;
   reset: () => void;
 }
 
@@ -20,6 +21,11 @@ export const useSwarmStore = create<SwarmStoreState>((set) => ({
         lastVersion: state.version,
       };
     }),
+
+  // Accept the next frame regardless of version. Called on each WebSocket
+  // (re)connect so a restarted backend (whose version counter resets) is not
+  // rejected by the monotonic-version guard.
+  resetVersion: () => set({ lastVersion: 0 }),
 
   reset: () =>
     set({

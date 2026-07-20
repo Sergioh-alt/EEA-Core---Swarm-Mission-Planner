@@ -32,6 +32,9 @@ class TwinRESTClientError extends Error {
   }
 }
 
+const REQUEST_TIMEOUT_MS = 10000;
+const MAX_GET_RETRIES = 2;
+
 export class TwinRESTClient {
   private baseUrl: string;
 
@@ -44,25 +47,99 @@ export class TwinRESTClient {
     return window.location.origin;
   }
 
-  private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    const url = `${this.baseUrl}${endpoint}`;
-    const response = await fetch(url, {
-      headers: {
-        "Content-Type": "application/json",
-        ...options?.headers,
-      },
-      ...options,
-    });
+  private backoff(attempt: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, 250 * 2 ** attempt));
+  }
 
-    if (!response.ok) {
+  private async fetchWithTimeout(
+    url: string,
+    options?: RequestInit
+  ): Promise<Response> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      return await fetch(url, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+          ...options?.headers,
+        },
+      });
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  private async parseJson<T>(response: Response, endpoint: string): Promise<T> {
+    const text = await response.text();
+    if (!text) {
+      return undefined as T;
+    }
+    try {
+      return JSON.parse(text) as T;
+    } catch {
       throw new TwinRESTClientError(
-        `Request failed: ${response.statusText}`,
+        "Malformed JSON response",
         response.status,
         endpoint
       );
     }
+  }
 
-    return response.json() as Promise<T>;
+  /**
+   * Perform a request with a hard timeout. Idempotent GETs are retried a
+   * few times on transient failures (network error, timeout, 5xx). Non-GET
+   * requests (intents, replay) are never retried automatically.
+   */
+  private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`;
+    const method = (options?.method ?? "GET").toUpperCase();
+    const isIdempotent = method === "GET";
+    const maxAttempts = isIdempotent ? MAX_GET_RETRIES + 1 : 1;
+
+    let lastError: unknown;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const response = await this.fetchWithTimeout(url, options);
+        if (!response.ok) {
+          const err = new TwinRESTClientError(
+            `Request failed: ${response.statusText}`,
+            response.status,
+            endpoint
+          );
+          if (
+            isIdempotent &&
+            response.status >= 500 &&
+            attempt < maxAttempts - 1
+          ) {
+            lastError = err;
+            await this.backoff(attempt);
+            continue;
+          }
+          throw err;
+        }
+        return await this.parseJson<T>(response, endpoint);
+      } catch (err) {
+        // Deterministic client errors and malformed responses are not retried.
+        if (err instanceof TwinRESTClientError && err.status < 500) {
+          throw err;
+        }
+        lastError = err;
+        if (!isIdempotent || attempt >= maxAttempts - 1) {
+          if (err instanceof TwinRESTClientError) throw err;
+          throw new TwinRESTClientError(
+            err instanceof Error ? err.message : "Network request failed",
+            0,
+            endpoint
+          );
+        }
+        await this.backoff(attempt);
+      }
+    }
+    throw lastError instanceof Error
+      ? lastError
+      : new TwinRESTClientError("Network request failed", 0, endpoint);
   }
 
   async getSwarmState(): Promise<SwarmState> {

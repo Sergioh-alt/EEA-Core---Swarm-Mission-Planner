@@ -1,15 +1,41 @@
 "use client";
 
+import { useState } from "react";
 import { PageShell } from "@/components/common/PageShell";
 import { StatusDot } from "@/components/common/StatusDot";
 import { useDroneStore } from "@/stores/droneStore";
 import { useSwarmStore } from "@/stores/swarmStore";
-import { HealthLevel } from "@/contracts/types";
+import { useMissionStore } from "@/stores/missionStore";
+import { HealthLevel, MissionStatus } from "@/contracts/types";
+import { getTwinRESTClient } from "@/lib/restClient";
 import { Rocket } from "lucide-react";
 
 export default function DeploymentPage() {
   const drones = useDroneStore((s) => s.drones);
   const swarmState = useSwarmStore((s) => s.swarmState);
+  const status = useMissionStore((s) => s.status);
+  const [pending, setPending] = useState(false);
+
+  const running = status === MissionStatus.RUNNING;
+  const deployDisabled = !swarmState || drones.length === 0 || running || pending;
+
+  // Deployment is intent submission only — the backend (Hive) is the sole
+  // decision authority for accepting or rejecting the deployment.
+  const onDeploy = async () => {
+    setPending(true);
+    try {
+      await getTwinRESTClient().submitIntent({
+        intent_type: "START_MISSION",
+        payload: {},
+        user_id: "operator",
+        timestamp_ms: Date.now(),
+      });
+    } catch {
+      // Rejected / unreachable — connection status reflects transport health.
+    } finally {
+      setPending(false);
+    }
+  };
 
   return (
     <PageShell
@@ -77,11 +103,16 @@ export default function DeploymentPage() {
           </h2>
           <div className="space-y-3">
             <button
-              className="w-full rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-50 flex items-center justify-center gap-2"
-              disabled={!swarmState || drones.length === 0}
+              onClick={onDeploy}
+              className="w-full rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50 flex items-center justify-center gap-2"
+              disabled={deployDisabled}
             >
               <Rocket className="h-4 w-4" />
-              Deploy Mission
+              {pending
+                ? "Submitting…"
+                : running
+                  ? "Mission Deployed"
+                  : "Deploy Mission"}
             </button>
             <p className="text-[10px] text-neutral-600 text-center">
               Deployment intent will be submitted to the backend handler.

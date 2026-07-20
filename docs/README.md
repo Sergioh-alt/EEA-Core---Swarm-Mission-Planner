@@ -11,6 +11,7 @@ Master index for all project documentation. Documentation is organized by type.
 | [`audits/`](audits/README.md) | Architecture consistency / compliance audits | [index](audits/README.md) |
 | [`roadmap/`](roadmap/README.md) | Master roadmaps and per-phase protocols | [index](roadmap/README.md) |
 | [`validation/`](validation/README.md) | Phase validation, boundary, replay, regression reports + raw logs | [index](validation/README.md) |
+| [`guides/`](guides/README.md) | Operator workflow, demonstration guide, known limitations | [index](guides/README.md) |
 | `research/` | Experiments and investigations (placeholder) | — |
 
 ## Root Documents

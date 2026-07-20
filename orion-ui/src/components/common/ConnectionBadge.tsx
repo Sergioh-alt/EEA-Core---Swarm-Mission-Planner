@@ -1,8 +1,11 @@
 "use client";
 
+import { RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useConnectionStore } from "@/stores/connectionStore";
 import type { ConnectionStatus } from "@/stores/connectionStore";
+import { getTwinWSClient } from "@/lib/wsClient";
+import { isLiveMode } from "@/lib/config";
 
 const STATUS_STYLES: Record<
   ConnectionStatus,
@@ -38,6 +41,8 @@ export function ConnectionBadge({ className }: ConnectionBadgeProps) {
   const status = useConnectionStore((s) => s.status);
   const latencyMs = useConnectionStore((s) => s.latencyMs);
   const style = STATUS_STYLES[status];
+  const showReconnect =
+    isLiveMode() && (status === "DISCONNECTED" || status === "ERROR");
 
   return (
     <div className={cn("flex items-center gap-2 text-xs", className)}>
@@ -45,6 +50,16 @@ export function ConnectionBadge({ className }: ConnectionBadgeProps) {
       <span className={style.text}>{style.label}</span>
       {status === "CONNECTED" && latencyMs > 0 && (
         <span className="text-neutral-600 font-mono">{latencyMs}ms</span>
+      )}
+      {showReconnect && (
+        <button
+          onClick={() => getTwinWSClient().reconnectNow()}
+          className="inline-flex items-center gap-1 rounded-md border border-neutral-700 bg-neutral-800 px-1.5 py-0.5 text-[10px] text-neutral-300 transition-colors hover:bg-neutral-700"
+          title="Reconnect to the Digital Twin"
+        >
+          <RotateCw className="h-3 w-3" />
+          Reconnect
+        </button>
       )}
     </div>
   );

@@ -125,7 +125,7 @@ export function Sidebar() {
 
       <div className="border-t border-neutral-800 px-4 py-3">
         <p className="text-[10px] text-neutral-600 text-center">
-          ORION GCS v10C.3
+          ORION GCS v10C.5
         </p>
       </div>
     </aside>
