@@ -7,7 +7,12 @@ export default function PlanningPage() {
   return (
     <PageShell
       title="Mission Planning"
-      description="Define mission parameters and waypoints"
+      description="Reference view of the planned mission profile"
+      actions={
+        <span className="rounded-md border border-neutral-700 bg-neutral-800 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-neutral-400">
+          Preview
+        </span>
+      }
     >
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 rounded-lg border border-neutral-800 bg-neutral-900 p-4">
@@ -15,14 +20,17 @@ export default function PlanningPage() {
             Planning Map
           </h2>
           <div className="flex items-center justify-center h-96 border border-dashed border-neutral-800 rounded-md text-neutral-600">
-            <div className="text-center">
+            <div className="max-w-sm text-center px-4">
               <Layers className="h-8 w-8 mx-auto mb-2" />
-              <p className="text-sm">Mission Planning Map</p>
+              <p className="text-sm">Interactive planning not enabled</p>
               <p className="text-xs text-neutral-700 mt-1">
-                Define waypoints, geofences, and mission areas.
+                The demonstration mission follows a fixed coverage route owned
+                by the Digital Twin. Operator control is available through
+                intents on the Mission Control screen.
               </p>
               <p className="text-[10px] text-neutral-700 mt-1">
-                Planning data is submitted as intents. Hive decides acceptance.
+                Route generation and allocation are backend responsibilities —
+                Hive is the sole decision authority.
               </p>
             </div>
           </div>
@@ -33,6 +41,9 @@ export default function PlanningPage() {
             <h2 className="text-sm font-medium text-neutral-300 mb-3">
               Mission Parameters
             </h2>
+            <p className="text-[10px] text-neutral-600 mb-3">
+              Reference profile for the demonstration mission (read-only).
+            </p>
             <div className="space-y-3">
               <div>
                 <label className="text-xs text-neutral-500 block mb-1">
@@ -66,7 +77,8 @@ export default function PlanningPage() {
               Waypoints
             </h2>
             <p className="text-xs text-neutral-600">
-              No waypoints defined. Click on the map to add waypoints.
+              Waypoints are defined by the backend route planner and streamed
+              to Mission Control as the executed coverage path.
             </p>
           </div>
         </div>

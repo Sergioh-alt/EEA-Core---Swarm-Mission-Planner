@@ -18,6 +18,8 @@ import type { ConnectionStatus } from "@/stores/connectionStore";
 const MAX_RECONNECT_ATTEMPTS = 10;
 const BASE_RECONNECT_DELAY_MS = 1000;
 const MAX_RECONNECT_DELAY_MS = 30000;
+// Bound de-duplication memory so long-running sessions do not grow unbounded.
+const MAX_SEEN_EVENT_IDS = 2000;
 
 export class TwinWebSocketClient {
   private ws: WebSocket | null = null;
@@ -38,8 +40,14 @@ export class TwinWebSocketClient {
   }
 
   connect(): void {
-    if (this.ws?.readyState === WebSocket.OPEN) return;
+    if (
+      this.ws?.readyState === WebSocket.OPEN ||
+      this.ws?.readyState === WebSocket.CONNECTING
+    ) {
+      return;
+    }
 
+    this.shouldReconnect = true;
     this.updateStatus("CONNECTING");
 
     try {
@@ -67,6 +75,20 @@ export class TwinWebSocketClient {
     this.updateStatus("DISCONNECTED");
   }
 
+  /**
+   * Operator-initiated recovery: clear any pending backoff, reset the
+   * attempt counter, and reconnect immediately. Used when automatic
+   * reconnection has been exhausted.
+   */
+  reconnectNow(): void {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    useConnectionStore.getState().resetReconnect();
+    this.connect();
+  }
+
   send(message: ClientMessage): void {
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(message));
@@ -76,6 +98,9 @@ export class TwinWebSocketClient {
   private handleOpen(): void {
     this.updateStatus("CONNECTED");
     useConnectionStore.getState().resetReconnect();
+    // A fresh connection may be to a restarted backend whose state version
+    // counter has reset; accept its next frame instead of rejecting it.
+    useSwarmStore.getState().resetVersion();
   }
 
   private handleMessage(event: MessageEvent): void {
@@ -110,6 +135,7 @@ export class TwinWebSocketClient {
         for (const evt of mission.events) {
           if (!this.seenEventIds.has(evt.id)) {
             this.seenEventIds.add(evt.id);
+            this.trimSeenEventIds();
             store.addEvent(evt);
           }
         }
@@ -153,6 +179,17 @@ export class TwinWebSocketClient {
     this.reconnectTimer = setTimeout(() => {
       this.connect();
     }, delay);
+  }
+
+  private trimSeenEventIds(): void {
+    if (this.seenEventIds.size <= MAX_SEEN_EVENT_IDS) return;
+    const overflow = this.seenEventIds.size - MAX_SEEN_EVENT_IDS;
+    const iterator = this.seenEventIds.values();
+    for (let i = 0; i < overflow; i++) {
+      const next = iterator.next();
+      if (next.done) break;
+      this.seenEventIds.delete(next.value);
+    }
   }
 
   private updateStatus(status: ConnectionStatus): void {

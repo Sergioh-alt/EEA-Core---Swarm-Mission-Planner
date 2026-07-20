@@ -2,9 +2,9 @@
 
 import { PageShell } from "@/components/common/PageShell";
 import { StatusDot } from "@/components/common/StatusDot";
+import { MapView } from "@/components/mission-control/MapView";
 import { useDroneStore } from "@/stores/droneStore";
 import { useSwarmStore } from "@/stores/swarmStore";
-import { Map as MapIcon } from "lucide-react";
 
 export default function MapPage() {
   const drones = useDroneStore((s) => s.drones);
@@ -13,20 +13,8 @@ export default function MapPage() {
   return (
     <PageShell title="Field Map" description="Geographic swarm visualization">
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 h-full">
-        <div className="lg:col-span-3 rounded-lg border border-neutral-800 bg-neutral-900 overflow-hidden">
-          <div className="flex items-center justify-center h-full min-h-[500px] text-neutral-600">
-            <div className="text-center">
-              <MapIcon className="h-12 w-12 mx-auto mb-3" />
-              <p className="text-sm">Map Container</p>
-              <p className="text-xs text-neutral-700 mt-1">
-                Mapbox GL will render here when configured.
-              </p>
-              <p className="text-xs text-neutral-700">
-                {drones.length} drone marker
-                {drones.length !== 1 ? "s" : ""} ready
-              </p>
-            </div>
-          </div>
+        <div className="lg:col-span-3 rounded-lg border border-neutral-800 bg-neutral-900 overflow-hidden min-h-[500px]">
+          <MapView />
         </div>
 
         <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">

@@ -159,6 +159,24 @@ export default function ReplayPage() {
             )}
           </div>
         </div>
+      ) : timeline.total_frames === 0 ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <Play className="h-8 w-8 text-neutral-600 mx-auto mb-3" />
+            <p className="text-sm text-neutral-500">
+              The recorded timeline is empty.
+            </p>
+            <p className="text-xs text-neutral-600 mt-1">
+              Run a mission to accumulate history, then reload the timeline.
+            </p>
+            <button
+              onClick={reset}
+              className="mt-3 inline-flex items-center gap-2 rounded-md border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-neutral-200 hover:bg-neutral-700"
+            >
+              Back
+            </button>
+          </div>
+        </div>
       ) : (
         <div className="space-y-6">
           <div className="rounded-lg border border-neutral-800 bg-neutral-900 p-4">
