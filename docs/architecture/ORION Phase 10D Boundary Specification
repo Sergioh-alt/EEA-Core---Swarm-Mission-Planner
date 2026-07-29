@@ -1,0 +1,630 @@
+# ORION Phase 10D — Boundary Specification
+
+Version: 1.0
+
+Status: Architecture Boundary Lock
+
+---
+
+# Purpose
+
+This document defines the operational boundaries of every subsystem introduced during Phase 10D.
+
+Its objective is to preserve the architectural principles established throughout ORION by preventing responsibility leakage between modules.
+
+Every module has clearly defined permissions.
+
+Everything outside those permissions is explicitly forbidden.
+
+These boundaries are mandatory and must remain enforced throughout all future development.
+
+---
+
+# Global Architecture Rules
+
+The following rules apply to every subsystem introduced during Phase 10D.
+
+## Rule 1
+
+The frontend never performs autonomous decision making.
+
+---
+
+## Rule 2
+
+The frontend never computes operational plans.
+
+---
+
+## Rule 3
+
+The frontend never performs optimization.
+
+---
+
+## Rule 4
+
+The frontend never allocates resources.
+
+---
+
+## Rule 5
+
+The frontend never modifies Digital Twin runtime state directly.
+
+All state mutations must occur through existing Intent APIs.
+
+---
+
+## Rule 6
+
+The Digital Twin remains the single runtime source of truth.
+
+---
+
+## Rule 7
+
+Mission execution remains entirely under backend control.
+
+---
+
+## Rule 8
+
+Planning algorithms remain backend responsibilities.
+
+---
+
+# Mission Creation
+
+Purpose
+
+Create editable mission definitions.
+
+Allowed
+
+* Create missions
+* Edit mission metadata
+* Import imagery
+* Import GIS data
+* Save drafts
+* Load drafts
+* Delete drafts
+
+Forbidden
+
+* Generate routes
+* Generate coverage
+* Select drones automatically
+* Allocate resources
+* Compute schedules
+* Execute missions
+* Modify Digital Twin runtime
+
+Produces
+
+Mission Definition
+
+Consumes
+
+Operator input
+
+---
+
+# Environment Builder
+
+Purpose
+
+Describe the physical environment.
+
+Allowed
+
+* Draw parcels
+* Draw crop zones
+* Draw obstacles
+* Draw restricted areas
+* Draw stations
+* Annotate infrastructure
+* Edit environment
+
+Forbidden
+
+* Compute flight paths
+* Optimize geometry
+* Compute spraying strategy
+* Compute coverage
+* Allocate drones
+* Execute missions
+
+Produces
+
+Environment Model
+
+Consumes
+
+Mission Definition
+
+---
+
+# Mission Designer
+
+Purpose
+
+Collect operator planning preferences.
+
+Allowed
+
+* Select target zones
+* Select mission priorities
+* Select planning mode
+* Configure flight parameters
+* Configure operational constraints
+
+Forbidden
+
+* Calculate routes
+* Balance workload
+* Generate optimization
+* Assign drones
+* Estimate resources internally
+
+Produces
+
+Mission Planning Request
+
+Consumes
+
+Mission Definition
+
+Environment Model
+
+---
+
+# Fleet Configuration
+
+Purpose
+
+Describe available operational resources.
+
+Allowed
+
+* Select drones
+* Select stations
+* Select payloads
+* Select tanks
+* Select products
+* Configure available assets
+
+Forbidden
+
+* Assign tasks
+* Balance workload
+* Optimize fleet
+* Schedule charging
+* Schedule refilling
+* Reallocate drones
+
+Produces
+
+Fleet Configuration
+
+Consumes
+
+Available fleet inventory
+
+---
+
+# Mission Library
+
+Purpose
+
+Persist reusable mission definitions.
+
+Allowed
+
+* Save
+* Load
+* Duplicate
+* Export
+* Import
+* Archive
+* Version
+
+Forbidden
+
+* Execute missions
+* Modify runtime state
+* Generate plans
+* Allocate resources
+* Schedule execution
+
+Produces
+
+Mission Templates
+
+Consumes
+
+Mission Definitions
+
+---
+
+# Mission Scheduler
+
+Purpose
+
+Define when missions should begin.
+
+Allowed
+
+* Create schedules
+* Edit schedules
+* Delete schedules
+* Enable schedules
+* Disable schedules
+* Queue missions
+
+Forbidden
+
+* Execute missions directly
+* Override Hive
+* Override Digital Twin
+* Override Fleet
+* Perform optimization
+* Reassign resources
+
+Produces
+
+Execution Requests
+
+Consumes
+
+Mission Templates
+
+---
+
+# Deployment Review
+
+Purpose
+
+Provide the final operator validation before execution.
+
+Allowed
+
+Display
+
+* Fleet
+* Geometry
+* Stations
+* Products
+* Estimated duration
+* Estimated coverage
+* Estimated resources
+* Warnings
+
+Operator Actions
+
+* Approve
+* Cancel
+* Return for editing
+
+Forbidden
+
+* Recalculate plans
+* Generate routes
+* Optimize mission
+* Assign drones
+* Allocate resources
+* Execute backend logic directly
+
+Produces
+
+Mission Intent
+
+Consumes
+
+Mission Package
+
+---
+
+# Mission Control
+
+Purpose
+
+Monitor mission execution.
+
+Allowed
+
+* Visualization
+* Telemetry
+* Replay
+* Analytics
+* Intent submission
+
+Forbidden
+
+* Mission planning
+* Resource allocation
+* Decision making
+* Route generation
+* Runtime optimization
+
+Consumes
+
+Digital Twin only
+
+---
+
+# Replay
+
+Purpose
+
+Historical visualization.
+
+Allowed
+
+* Playback
+* Timeline
+* Scrubbing
+* Historical reconstruction
+
+Forbidden
+
+* Modify history
+* Resume missions
+* Change runtime state
+
+Replay is permanently read-only.
+
+---
+
+# Analytics
+
+Purpose
+
+Operational insight.
+
+Allowed
+
+Display backend metrics.
+
+Forbidden
+
+* Create synthetic metrics
+* Predict outcomes
+* Modify operational state
+
+Analytics never generates business logic.
+
+---
+
+# Digital Twin
+
+Purpose
+
+Represent the complete operational state.
+
+Allowed
+
+* Runtime synchronization
+* Snapshot generation
+* Replay generation
+* Telemetry streaming
+
+Forbidden
+
+* UI rendering
+* Business presentation
+* Operator interaction
+
+Digital Twin is infrastructure.
+
+---
+
+# Hive
+
+Purpose
+
+Mission orchestration.
+
+Allowed
+
+* Mission lifecycle
+* Resource coordination
+* Fleet coordination
+* Operational orchestration
+
+Forbidden
+
+* UI rendering
+* Hardware communication
+* Frontend state
+
+---
+
+# HAL
+
+Purpose
+
+Hardware abstraction.
+
+Allowed
+
+* Translate commands
+* Receive telemetry
+* Normalize hardware interfaces
+
+Forbidden
+
+* Planning
+* Optimization
+* Mission orchestration
+* UI communication
+
+---
+
+# Cross-Module Communication Rules
+
+Mission Planning
+
+↓
+
+Intent API
+
+↓
+
+Backend
+
+↓
+
+Hive
+
+↓
+
+Simulation
+
+↓
+
+Digital Twin
+
+↓
+
+REST / WebSocket
+
+↓
+
+Mission Control
+
+No module may bypass this chain.
+
+---
+
+# Forbidden Dependencies
+
+The following dependencies are permanently prohibited.
+
+Mission Planning
+
+Must never import
+
+* Hive
+* HAL
+* PX4
+* MAVLink
+* ROS2
+* Simulation Core
+
+Mission Control
+
+Must never import
+
+* Hive
+* HAL
+* Route Planner
+* Swarm Planner
+* Decision Engine
+* Resource Planner
+
+Digital Twin
+
+Must never import
+
+* React
+* Next.js
+* UI components
+
+HAL
+
+Must never import
+
+* React
+* Mission Planning
+* Analytics
+
+Replay
+
+Must never mutate
+
+Digital Twin runtime state.
+
+---
+
+# State Ownership
+
+Mission Definitions
+
+Owned by
+
+Mission Planning
+
+Runtime State
+
+Owned by
+
+Digital Twin
+
+Mission Lifecycle
+
+Owned by
+
+Hive
+
+Hardware State
+
+Owned by
+
+HAL
+
+Historical State
+
+Owned by
+
+Replay
+
+Operational Metrics
+
+Owned by
+
+Analytics
+
+Ownership is exclusive.
+
+No duplicated sources of truth are permitted.
+
+---
+
+# Validation Requirements
+
+Every future implementation under Phase 10D shall validate:
+
+* Boundary compliance
+* Forbidden import scan
+* Dependency validation
+* Architecture validation
+* Type validation
+* Manual workflow validation
+* Documentation synchronization
+
+Any boundary violation shall block progression to the next phase.
+
+---
+
+# Final Boundary Statement
+
+Phase 10D extends the ORION operational workflow without altering the architectural responsibilities established in previous phases.
+
+No subsystem receives additional authority outside its defined responsibility.
+
+Mission Planning prepares missions.
+
+The backend plans missions.
+
+Hive orchestrates missions.
+
+HAL abstracts hardware.
+
+The Digital Twin reflects reality.
+
+Mission Control visualizes reality.
+
+Every subsystem has a single responsibility, a single owner, and a clearly defined boundary.
+
+These boundaries are considered locked from the completion of Phase 10D onward and shall remain the foundation for all commercial development beginning in Phase 11.
