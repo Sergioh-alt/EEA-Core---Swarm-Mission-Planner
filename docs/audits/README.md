@@ -7,5 +7,6 @@ historical audits are fabricated.
 | Audit | Date | Scope |
 |-------|------|-------|
 | [`phase6_architecture_audit.md`](phase6_architecture_audit.md) | 2026-06-21 | Post-Phase 6 architecture consistency audit (duplicates, dead code, unused imports, centralization) across `core/`, `ui/`, `utils/`, `config/`, `app.py` |
+| [`ui_functional_audit.md`](ui_functional_audit.md) | 2026-06-29 | Product/UI inventory of the `orion-ui` frontend — page-by-page elements, data sources (Twin/REST/WS/local/placeholder), map & Mission Control capabilities, navigation, functional flow, and gap analysis (documentation only) |
 
 _Future audits should be added here with a corresponding row above._
