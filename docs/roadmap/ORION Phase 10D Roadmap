@@ -34,7 +34,44 @@ Replay & Analytics
         │
         ▼
 Mission Library
-Phase 10D.1
+
+Central Contract — Mission Definition Pipeline
+
+Every stage above writes to one formal artifact, the Mission Definition, which
+the Planning Core converts into a Mission Package for Digital Twin execution:
+
+Field → Preparation → Mission Designer → Mission Definition → Planning Core →
+Mission Package → Mission Library → Digital Twin → Mission Control
+
+The UI never connects planning actions directly to execution; it only edits the
+Mission Definition.
+
+Revised Subdivision (authoritative)
+
+Phase 10D is now subdivided as follows. Sub-phases 10D.3–10D.7 only enrich the
+Mission Definition contract established in 10D.2 — they add no new execution path.
+
+| Sub-phase | Name | Enriches the Mission Definition with |
+|-----------|------|--------------------------------------|
+| 10D.1 | Architectural Analysis | (analysis only — completed) |
+| 10D.2 | **Mission Definition Pipeline** | the contract itself: persistence, Planning Core integration, Mission Package generation, fleet inventory, field persistence |
+| 10D.3 | Field Acquisition | field geometry, images, zones, obstacles, environmental information |
+| 10D.4 | Mission Designer | crop zones, operation type, route preferences, manual editing, automatic planning request |
+| 10D.5 | Fleet Configuration | available drones, capabilities, tank/product information, operational constraints |
+| 10D.6 | Mission Review | validates generated plan, resource requirements, estimated execution, Digital Twin deployment readiness |
+| 10D.7 | Mission Library | mission storage, reusable templates, scheduling metadata, historical reference |
+
+Mission execution is not a separately-built module: Mission Review (10D.6)
+deploys the Mission Package to the **existing** Mission Control, which remains
+the execution visualization layer. The new pipeline feeds Mission Control; it
+does not replace it.
+
+> Note: the functional-stage descriptions below were authored under an earlier
+> numbering (Field Acquisition = 10D.1 … Mission Library = 10D.7). They remain
+> valid as capability descriptions; the authoritative sub-phase numbering is the
+> table above.
+
+Phase 10D.1 (legacy numbering)
 
 Field Acquisition
 

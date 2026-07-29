@@ -74,6 +74,61 @@ Planning algorithms remain backend responsibilities.
 
 ---
 
+## Rule 9
+
+The Mission Definition is the single design-time contract. UI planning actions
+never connect directly to execution — they only create or edit a Mission
+Definition, which the Planning Core converts into a Mission Package.
+
+---
+
+# Mission Definition Pipeline
+
+Purpose
+
+Formalize the mission lifecycle contract that bridges the user planning
+experience and Digital Twin execution. This is the backend foundation
+introduced in Phase 10D.2 and enriched by every later sub-phase.
+
+Responsibilities
+
+* Persist editable Mission Definitions (design-time data)
+* Persist field data
+* Expose fleet inventory (available assets only)
+* Invoke the Planning Core to convert a Mission Definition into a Mission Package
+* Return the generated Mission Package (routes, resources, timeline, warnings)
+
+Allowed
+
+* Store / load / update / delete Mission Definitions and fields
+* Call existing `core/` planning functions (orchestration only)
+* Serialize Planning Core results into a Mission Package
+* Provide read-only fleet inventory
+
+Forbidden
+
+* Implement new planning, optimization, or allocation algorithms
+* Make autonomous decisions
+* Mutate Digital Twin runtime state
+* Execute missions (execution remains a Hive/Digital-Twin responsibility via intents)
+* Contain UI rendering
+
+Produces
+
+Mission Definition (persisted) and Mission Package (execution-ready)
+
+Consumes
+
+Operator input (via UI) and the existing Planning Core (`core/`)
+
+State Ownership
+
+Mission Definition and Mission Package artifacts are owned by the Mission
+Definition Pipeline at design time. Once deployed, runtime state is owned solely
+by the Digital Twin. The pipeline never becomes a second runtime source of truth.
+
+---
+
 # Mission Creation
 
 Purpose
@@ -463,17 +518,25 @@ Forbidden
 
 # Cross-Module Communication Rules
 
-Mission Planning
+Mission Planning (UI)
 
-↓
+↓  creates / edits
 
-Intent API
+Mission Definition
 
-↓
+↓  submitted to
 
-Backend
+Mission Definition Pipeline (backend)
 
-↓
+↓  invokes
+
+Planning Core
+
+↓  produces
+
+Mission Package
+
+↓  deploy intent
 
 Hive
 
@@ -493,7 +556,8 @@ REST / WebSocket
 
 Mission Control
 
-No module may bypass this chain.
+No module may bypass this chain. The UI never reaches execution without first
+producing a Mission Definition and a Planning-Core-generated Mission Package.
 
 ---
 

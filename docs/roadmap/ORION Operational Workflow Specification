@@ -7,6 +7,20 @@ These workflows describe how a user interacts with ORION from the first uploaded
 
 They represent the reference operational flow for demonstrations, validation sessions, and investor presentations.
 
+Central Artifact — Mission Definition
+
+All workflows below operate on a single formal artifact: the Mission Definition.
+Workflows 1–5 progressively build/edit the Mission Definition (field, preparation,
+designer, fleet). The Planning Core converts the completed definition into a
+Mission Package, which Workflow 6 deploys to the Digital Twin and the existing
+Mission Control:
+
+Field → Preparation → Mission Designer → Mission Definition → Planning Core →
+Mission Package → Digital Twin → Mission Control → Replay → Analytics → Library
+
+No workflow connects a UI action directly to execution; each action edits the
+Mission Definition or submits an intent.
+
 Workflow 1 — Create a New Field
 Open ORION
 
