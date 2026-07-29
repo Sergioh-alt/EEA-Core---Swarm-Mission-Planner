@@ -1,0 +1,412 @@
+# ORION Phase 10D — Architecture Specification
+
+Version: 1.0
+
+Status: Approved Architecture Specification
+
+---
+
+# Purpose
+
+Phase 10D completes the operational workflow of ORION by introducing the Mission Planning experience that precedes Mission Control.
+
+The objective of this phase is **not** to redesign the architecture nor to introduce additional autonomous intelligence.
+
+Instead, Phase 10D extends the existing Digital Twin platform so that an operator can perform an entire agricultural mission from initial field creation through mission deployment using a complete simulation workflow.
+
+This phase transforms the current Mission Control demonstration into an end-to-end operational demonstration suitable for presentations, validation sessions and investor demonstrations.
+
+---
+
+# Design Principles
+
+The architecture established during Phases 8–10 remains fully preserved.
+
+No subsystem changes responsibility.
+
+No execution logic moves to the frontend.
+
+No planning logic is duplicated.
+
+No business logic is added to the UI.
+
+The Digital Twin remains the only operational source of truth.
+
+Mission execution continues to be coordinated by the existing backend architecture.
+
+---
+
+# High-Level Operational Workflow
+
+```
+Mission Creation
+        │
+        ▼
+Environment Builder
+        │
+        ▼
+Mission Designer
+        │
+        ▼
+Fleet Configuration
+        │
+        ▼
+Mission Library / Scheduler
+        │
+        ▼
+Deployment Review
+        │
+        ▼
+Mission Control
+        │
+        ▼
+Replay / Analytics / History
+```
+
+Every stage produces information consumed by the next stage.
+
+No stage directly modifies later execution systems.
+
+---
+
+# Architectural Scope
+
+Phase 10D introduces seven new functional modules.
+
+## 1. Mission Creation
+
+Purpose
+
+Create a reusable mission project.
+
+Responsibilities
+
+* Create mission metadata
+* Import field data
+* Import imagery
+* Create mission workspace
+* Persist editable mission
+
+Outputs
+
+Mission definition only.
+
+This module never generates routes.
+
+---
+
+## 2. Environment Builder
+
+Purpose
+
+Transform imported geographic information into an operational environment.
+
+Responsibilities
+
+* Display imported imagery
+* Display orthomosaics
+* Display GeoTIFF layers
+* Display field boundaries
+* Draw agricultural zones
+* Draw obstacles
+* Draw restricted areas
+* Draw infrastructure
+* Place stations
+* Create operational annotations
+
+Outputs
+
+Operational environment model.
+
+No mission planning occurs here.
+
+---
+
+## 3. Mission Designer
+
+Purpose
+
+Define how the mission should be executed.
+
+Responsibilities
+
+Operator defines:
+
+* Mission objectives
+* Target zones
+* Working order
+* Coverage preferences
+* Planning mode
+* Flight parameters
+* Operational constraints
+
+Planning Modes
+
+* Manual
+* Assisted
+* Automatic
+
+The operator defines intent.
+
+The backend performs planning.
+
+---
+
+## 4. Fleet Configuration
+
+Purpose
+
+Associate available resources with the mission.
+
+Responsibilities
+
+Select:
+
+* Drones
+* Stations
+* Tanks
+* Payloads
+* Products
+* Batteries
+
+Display
+
+* Capacity
+* Remaining resources
+* Compatibility
+* Availability
+
+Fleet Configuration never performs allocation.
+
+It only defines available assets.
+
+---
+
+## 5. Mission Library
+
+Purpose
+
+Persist reusable mission templates.
+
+Responsibilities
+
+* Save mission
+* Duplicate mission
+* Version mission
+* Import mission
+* Export mission
+* Organize mission library
+
+Mission Library stores mission definitions.
+
+It never executes missions.
+
+---
+
+## 6. Mission Scheduler
+
+Purpose
+
+Schedule future mission execution.
+
+Responsibilities
+
+* Calendar view
+* One-time schedules
+* Recurring schedules
+* Queue management
+* Activation time
+
+Scheduler submits execution requests.
+
+Scheduler never controls execution.
+
+---
+
+## 7. Deployment Review
+
+Purpose
+
+Provide the final verification step before execution.
+
+Responsibilities
+
+Summarize
+
+* Geometry
+* Fleet
+* Products
+* Stations
+* Estimated duration
+* Estimated coverage
+* Estimated resource usage
+* Mission warnings
+
+The operator reviews.
+
+The operator confirms.
+
+Deployment Review never performs optimization.
+
+---
+
+# Existing Modules
+
+The following modules remain unchanged.
+
+Mission Control
+
+Digital Twin
+
+Hive
+
+HAL
+
+Simulation Core
+
+Route Planner
+
+Risk Engine
+
+Decision Engine
+
+Analytics
+
+Replay
+
+History
+
+Their responsibilities remain exactly as defined during previous phases.
+
+---
+
+# Architectural Relationships
+
+Mission Planning produces mission definitions.
+
+Mission definitions are submitted to the backend.
+
+The backend computes operational plans.
+
+The Digital Twin reflects the resulting operational state.
+
+Mission Control visualizes Digital Twin state.
+
+Replay reconstructs historical Digital Twin states.
+
+Analytics visualizes Digital Twin historical metrics.
+
+At no point does the frontend compute operational decisions.
+
+---
+
+# Data Ownership
+
+Mission Planning
+
+Owns
+
+* Editable mission definitions
+
+Digital Twin
+
+Owns
+
+* Runtime operational state
+
+Hive
+
+Owns
+
+* Mission orchestration
+
+HAL
+
+Owns
+
+* Hardware abstraction
+
+Replay
+
+Owns
+
+* Historical reconstruction
+
+Analytics
+
+Owns
+
+* Operational metrics
+
+No ownership overlaps are introduced.
+
+---
+
+# Frontend Responsibilities
+
+The frontend may
+
+* Display information
+* Collect operator input
+* Persist editable missions
+* Submit intents
+* Configure visualization
+* Display analytics
+* Display replay
+
+The frontend never
+
+* Plans routes
+* Allocates drones
+* Balances resources
+* Schedules execution internally
+* Computes optimization
+* Generates autonomous decisions
+
+---
+
+# Backend Responsibilities
+
+The backend remains responsible for
+
+* Planning
+* Resource management
+* Swarm coordination
+* Mission orchestration
+* Runtime synchronization
+* Simulation
+* Digital Twin updates
+* Replay generation
+
+No backend decision logic is moved to the frontend.
+
+---
+
+# Digital Twin Integration
+
+All operational visualization continues to originate exclusively from the Digital Twin.
+
+The UI communicates only through
+
+* REST APIs
+* WebSocket telemetry
+* Replay endpoints
+* Snapshot endpoints
+
+The UI never communicates directly with
+
+* Hive
+* HAL
+* PX4
+* MAVLink
+* ROS2
+
+---
+
+# Phase Objective
+
+At the conclusion of Phase 10D, ORION shall provide a complete end-to-end operational demonstration capable of simulating the full agricultural workflow without requiring physical drones or hardware stations.
+
+The resulting platform shall accurately represent the intended commercial workflow while preserving all architectural boundaries established in previous phases.
+
+This architecture serves as the final demonstration architecture prior to Phase 11, where the commercial production platform will begin development.
