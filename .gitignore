@@ -49,6 +49,12 @@ ENV/
 .DS_Store
 Thumbs.db
 
+# Phase 10D.2 — Mission Definition Pipeline demonstration persistence.
+/data/
+*.sqlite
+*.sqlite3
+mission_pipeline.db
+
 # The Python build ignores above (e.g. `lib/`, `build/`) are unanchored and
 # would otherwise exclude the Next.js UI source directory `orion-ui/src/lib/`.
 # Re-include it so UI source is always tracked.

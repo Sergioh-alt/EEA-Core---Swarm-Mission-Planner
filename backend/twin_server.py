@@ -35,6 +35,11 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from backend.mission_pipeline.api import create_pipeline_router
+from backend.mission_pipeline.persistence import (
+    DefinitionStore,
+    create_default_store,
+)
 from backend.serializers import JSONObject, JSONValue
 from backend.twin_runtime import TwinRuntime
 
@@ -101,10 +106,12 @@ def create_app(
     tick_interval_s: float = DEFAULT_TICK_INTERVAL_S,
     autostart_mission: bool = True,
     run_loop: bool = True,
+    definition_store: Optional[DefinitionStore] = None,
 ) -> FastAPI:
     """Build the FastAPI app. `run_loop=False` is used for tests."""
     runtime = runtime or TwinRuntime()
     manager = ConnectionManager()
+    store = definition_store or create_default_store(_definition_db_from_env())
 
     async def _tick_loop() -> None:
         if autostart_mission:
@@ -141,6 +148,14 @@ def create_app(
 
     app.state.runtime = runtime
     app.state.manager = manager
+    app.state.definition_store = store
+
+    # ------------------------------------------------------------------
+    # Mission Definition Pipeline (Phase 10D.2) — design-time REST.
+    # Persistence + Planning-Core orchestration only; never mutates the
+    # Digital Twin runtime and contains no decision logic.
+    # ------------------------------------------------------------------
+    app.include_router(create_pipeline_router(store))
 
     # ------------------------------------------------------------------
     # REST — read-only
@@ -273,6 +288,24 @@ def create_app(
 
 def _autostart_from_env() -> bool:
     return os.environ.get("TWIN_AUTOSTART", "1").lower() not in ("0", "false", "no")
+
+
+def _definition_db_from_env() -> Optional[str]:
+    """
+    Path to the Mission Definition Pipeline SQLite database.
+
+    Defaults to a file under data/ so demonstration definitions persist across
+    restarts. Set ORION_DEFINITION_DB="" to use the in-memory store. The store
+    is replaceable (see backend.mission_pipeline.persistence).
+    """
+    value = os.environ.get("ORION_DEFINITION_DB", "data/mission_pipeline.db")
+    stripped = value.strip()
+    if not stripped:
+        return None
+    directory = os.path.dirname(stripped)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    return stripped
 
 
 def _tick_interval_from_env() -> float:

@@ -191,14 +191,21 @@ user's current task is the **analysis**, labeled 10D.1; the implementation
 sub-phases below start at 10D.2, consistent with "wait for approval before
 10D.2".)
 
+> **Numbering update (authoritative).** Per the approved Phase 10D documentation
+> clarification, 10D.2 is the **Mission Definition Pipeline** — it establishes the
+> Mission Definition / Mission Package contract, not just backend endpoints.
+> Sub-phases 10D.3–10D.7 only *enrich* that contract; they add no new execution
+> path. Mission execution is not a separate build — Mission Review (10D.6) deploys
+> the Mission Package to the existing Mission Control.
+
 | Sub-phase | Scope | Depends on | Rationale |
 |-----------|-------|------------|-----------|
-| **10D.2 — Planning backend seam** | Persistence store (SQLite + repos), Mission/Field CRUD APIs, `POST /api/planning/compute` wrapping the existing `core/` chain, `GET /api/fleet/inventory`. No UI. Full test coverage. | — | De-risks everything; exposes existing intelligence without new algorithms. |
-| **10D.3 — Field Acquisition + Preparation UI** | `/fields`, image upload, `/fields/[id]/prepare` drawing (boundary/zones/obstacles), layers, undo/redo; `fieldStore`/`environmentStore`. | 10D.2 | Produces geometry the planner consumes. |
-| **10D.4 — Mission Designer UI** | Replace `/planning` placeholder; zones, planning mode, flight params; call `/api/planning/compute`; coverage preview + estimates. | 10D.2–3 | Turns field into executable definition. |
-| **10D.5 — Fleet Configuration UI** | `/fleet/configure`; drone/payload/product selection from inventory; compatibility display. | 10D.2 | Completes the mission package. |
-| **10D.6 — Mission Review + definition-driven deployment** | Rework `/deployment` into Review (summary/estimates/warnings/export); deploy submits definition-referenced intent; Twin runtime consumes deployed geometry+routes; Emergency Stop. | 10D.2–5 | Bridges planning → existing Mission Control. |
-| **10D.7 — Mission Library + Scheduler** | `/library`, `/schedule` (plan storage only), duplicate/version/import/export/archive/search. | 10D.2 | Reuse loop; scheduling stores plans only (execution = Phase 11). |
+| **10D.2 — Mission Definition Pipeline** | Mission Definition + Mission Package contract; SQLite persistence (replaceable repos) for fields + definitions; Planning Core integration (definition → existing `core/` chain → package); fleet inventory; `POST /api/planning/compute`, CRUD APIs. No UI. Full test coverage. | — | De-risks everything; formalizes the central contract using existing intelligence, no new algorithms. |
+| **10D.3 — Field Acquisition** | Enriches the definition with field geometry, images, zones, obstacles, environmental info. `/fields` + preparation UI, drawing, layers, undo/redo. | 10D.2 | Produces geometry the planner consumes. |
+| **10D.4 — Mission Designer** | Enriches with crop zones, operation type, route preferences, manual editing, automatic planning request. Replaces `/planning` placeholder; coverage preview + estimates. | 10D.2–3 | Turns field into executable definition. |
+| **10D.5 — Fleet Configuration** | Enriches with available drones, capabilities, tank/product info, operational constraints. `/fleet/configure` from inventory. | 10D.2 | Completes the mission package. |
+| **10D.6 — Mission Review** | Validates generated plan, resource requirements, estimated execution, Digital Twin deployment readiness; deploys Mission Package to the existing Mission Control; Emergency Stop. | 10D.2–5 | Bridges planning → existing Mission Control. |
+| **10D.7 — Mission Library** | Mission storage, reusable templates, scheduling metadata (plan storage only), historical reference; duplicate/version/import/export/archive/search. | 10D.2 | Reuse loop; scheduling stores plans only (execution = Phase 11). |
 | **10D.8 — Integration validation + docs** | End-to-end walkthrough, boundary/forbidden-import scans, regression, validation reports, demo guide. | all | Final demonstration sign-off. |
 
 Each sub-phase ships behind the existing boundary checks and leaves prior work

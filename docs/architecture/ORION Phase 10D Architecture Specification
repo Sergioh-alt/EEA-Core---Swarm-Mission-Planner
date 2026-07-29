@@ -36,6 +36,76 @@ Mission execution continues to be coordinated by the existing backend architectu
 
 ---
 
+# Mission Definition — The Central Contract
+
+Phase 10D does **not** connect UI planning actions directly to execution.
+
+Every operator planning action creates or edits a single, formal artifact: the
+**Mission Definition**. The Mission Definition is the central contract that
+represents a complete mission lifecycle, from user definition through Digital
+Twin execution.
+
+```
+User Planning Experience
+        │
+        ▼
+Mission Definition        (created/edited by the UI, persisted)
+        │
+        ▼
+Planning Intelligence     (Planning Core — existing core/ pipeline)
+        │
+        ▼
+Mission Package           (generated routes, resources, timeline, warnings)
+        │
+        ▼
+Mission Execution Simulation
+        │
+        ▼
+Mission Control
+```
+
+Expanded conceptual flow:
+
+```
+Field
+        ▼
+Preparation
+        ▼
+Mission Designer
+        ▼
+Mission Definition   ← the contract every planning screen writes to
+        ▼
+Planning Core        ← computes the plan (backend only)
+        ▼
+Mission Package      ← execution-ready artifact for the Digital Twin
+        ▼
+Mission Library      ← persists reusable definitions/templates
+        ▼
+Digital Twin
+        ▼
+Mission Control
+```
+
+Principles:
+
+1. **Mission Definition is the central contract.** The UI creates and edits a
+   Mission Definition; it never plans. The Planning Core processes the
+   definition; the result is a Mission Package consumed by the Digital Twin.
+2. **Foundational, not throwaway.** Phase 10D completes the demonstration, but
+   the Mission Definition / Mission Package contract and its persistence are
+   designed to evolve into the Phase 11 commercial system without rebuilding the
+   foundations. The persistence layer is replaceable.
+3. **Later sub-phases only enrich the contract.** 10D.3–10D.7 add fields to the
+   Mission Definition (geometry, zones, obstacles, crops, operation parameters,
+   fleet selection, products, scheduling metadata); they do not introduce new
+   execution paths.
+
+The **Mission Definition** is owned by Mission Planning (design-time data). The
+**Mission Package** and all runtime state remain owned by the Digital Twin
+(runtime truth). No duplicated source of truth is introduced.
+
+---
+
 # High-Level Operational Workflow
 
 ```
