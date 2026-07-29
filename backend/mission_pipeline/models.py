@@ -51,12 +51,30 @@ class Obstacle:
 
 
 @dataclass
+class FieldImage:
+    """A reference to an uploaded field image (satellite/drone/manual)."""
+
+    image_id: str
+    filename: str
+    source: str  # "satellite" | "drone" | "manual"
+    url: str
+    width_px: int = 0
+    height_px: int = 0
+    uploaded_ms: int = 0
+
+
+@dataclass
 class FieldSpec:
     """
-    Field information + preparation data.
+    Field information + preparation data (Phase 10D.3).
 
-    boundary_points are user-drawn local metric vertices; when absent, the
-    Planning Core falls back to a synthetic rectangle from area_ha (v0.1 compat).
+    boundary_points, zones and obstacles are user-drawn local metric vertices
+    (meters); when boundary is absent, the Planning Core falls back to a
+    synthetic rectangle from area_ha (v0.1 compat).
+
+    meters_per_pixel relates the annotation image to metric space so operator
+    drawings on the uploaded image become metric geometry the Planning Core
+    consumes. Annotation happens in the UI only — no planning is performed here.
     """
 
     name: str
@@ -65,6 +83,10 @@ class FieldSpec:
     area_ha: Optional[float] = None
     zones: list[Zone] = field(default_factory=list)
     obstacles: list[Obstacle] = field(default_factory=list)
+    images: list[FieldImage] = field(default_factory=list)
+    meters_per_pixel: float = 0.5
+    location: str = ""
+    notes: str = ""
 
 
 @dataclass
@@ -202,6 +224,52 @@ class MissionDefinition:
 
 
 # ---------------------------------------------------------------------------
+# Field Definition (standalone, persisted — Phase 10D.3)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class FieldDefinition:
+    """
+    A persisted, reusable field: its FieldSpec plus identity and timestamps.
+
+    Created and edited in the Field Acquisition & Preparation workflow, then
+    referenced by a MissionDefinition. Design-time data only — never runtime.
+    """
+
+    spec: FieldSpec
+    id: str = field(default_factory=lambda: f"field_{uuid.uuid4().hex[:12]}")
+    version: int = 1
+    created_ms: int = field(default_factory=lambda: int(time.time() * 1000))
+    updated_ms: int = field(default_factory=lambda: int(time.time() * 1000))
+
+    def to_json(self) -> JSONObject:
+        payload = _field_to_json(self.spec)
+        payload.update(
+            {
+                "id": self.id,
+                "version": self.version,
+                "created_ms": self.created_ms,
+                "updated_ms": self.updated_ms,
+            }
+        )
+        return payload
+
+    @classmethod
+    def from_json(cls, data: JSONObject) -> "FieldDefinition":
+        definition = cls(spec=_field_from_json(data))
+        if isinstance(data.get("id"), str) and str(data["id"]).strip():
+            definition.id = str(data["id"])
+        if isinstance(data.get("version"), int):
+            definition.version = int(data["version"])
+        if isinstance(data.get("created_ms"), int):
+            definition.created_ms = int(data["created_ms"])
+        if isinstance(data.get("updated_ms"), int):
+            definition.updated_ms = int(data["updated_ms"])
+        return definition
+
+
+# ---------------------------------------------------------------------------
 # Mission Package (Planning-Core output — execution-ready)
 # ---------------------------------------------------------------------------
 
@@ -254,7 +322,22 @@ def _field_to_json(spec: FieldSpec) -> JSONObject:
         "name": spec.name,
         "crop_type": spec.crop_type,
         "area_ha": spec.area_ha,
+        "meters_per_pixel": spec.meters_per_pixel,
+        "location": spec.location,
+        "notes": spec.notes,
         "boundary_points": [[x, y] for (x, y) in spec.boundary_points],
+        "images": [
+            {
+                "image_id": img.image_id,
+                "filename": img.filename,
+                "source": img.source,
+                "url": img.url,
+                "width_px": img.width_px,
+                "height_px": img.height_px,
+                "uploaded_ms": img.uploaded_ms,
+            }
+            for img in spec.images
+        ],
         "zones": [
             {
                 "zone_id": z.zone_id,
@@ -283,9 +366,25 @@ def _field_from_json(data: JSONObject) -> FieldSpec:
         name=_require_str(data.get("name"), "field.name"),
         crop_type=_as_str(data.get("crop_type"), "generic"),
         area_ha=_as_opt_float(data.get("area_ha")),
+        meters_per_pixel=_as_float(data.get("meters_per_pixel"), 0.5),
+        location=_as_str(data.get("location"), ""),
+        notes=_as_str(data.get("notes"), ""),
         boundary_points=_points_from_json(data.get("boundary_points")),
+        images=[_image_from_json(i) for i in _as_list(data.get("images"))],
         zones=[_zone_from_json(z) for z in _as_list(data.get("zones"))],
         obstacles=[_obstacle_from_json(o) for o in _as_list(data.get("obstacles"))],
+    )
+
+
+def _image_from_json(data: JSONObject) -> FieldImage:
+    return FieldImage(
+        image_id=_as_str(data.get("image_id"), f"img_{uuid.uuid4().hex[:8]}"),
+        filename=_as_str(data.get("filename"), ""),
+        source=_as_str(data.get("source"), "manual"),
+        url=_as_str(data.get("url"), ""),
+        width_px=_as_int(data.get("width_px"), 0),
+        height_px=_as_int(data.get("height_px"), 0),
+        uploaded_ms=_as_int(data.get("uploaded_ms"), 0),
     )
 
 

@@ -15,6 +15,7 @@ import {
   Rocket,
   Layers,
   Radio,
+  MapPinned,
 } from "lucide-react";
 
 interface NavItem {
@@ -48,6 +49,11 @@ const NAV_ITEMS: NavItem[] = [
     label: "Map",
     href: "/map",
     icon: <Map className="h-5 w-5" />,
+  },
+  {
+    label: "Fields",
+    href: "/fields",
+    icon: <MapPinned className="h-5 w-5" />,
   },
   {
     label: "Planning",

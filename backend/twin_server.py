@@ -36,6 +36,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from backend.mission_pipeline.api import create_pipeline_router
+from backend.mission_pipeline.field_images import (
+    FieldImageStore,
+    create_default_image_store,
+)
 from backend.mission_pipeline.persistence import (
     DefinitionStore,
     create_default_store,
@@ -107,11 +111,13 @@ def create_app(
     autostart_mission: bool = True,
     run_loop: bool = True,
     definition_store: Optional[DefinitionStore] = None,
+    image_store: Optional[FieldImageStore] = None,
 ) -> FastAPI:
     """Build the FastAPI app. `run_loop=False` is used for tests."""
     runtime = runtime or TwinRuntime()
     manager = ConnectionManager()
     store = definition_store or create_default_store(_definition_db_from_env())
+    images = image_store or create_default_image_store(_image_dir_from_env())
 
     async def _tick_loop() -> None:
         if autostart_mission:
@@ -149,13 +155,14 @@ def create_app(
     app.state.runtime = runtime
     app.state.manager = manager
     app.state.definition_store = store
+    app.state.image_store = images
 
     # ------------------------------------------------------------------
     # Mission Definition Pipeline (Phase 10D.2) — design-time REST.
     # Persistence + Planning-Core orchestration only; never mutates the
     # Digital Twin runtime and contains no decision logic.
     # ------------------------------------------------------------------
-    app.include_router(create_pipeline_router(store))
+    app.include_router(create_pipeline_router(store, images))
 
     # ------------------------------------------------------------------
     # REST — read-only
@@ -306,6 +313,19 @@ def _definition_db_from_env() -> Optional[str]:
     if directory:
         os.makedirs(directory, exist_ok=True)
     return stripped
+
+
+def _image_dir_from_env() -> str:
+    """
+    Directory for uploaded field annotation images.
+
+    Defaults to data/field_images (git-ignored). The image store is a
+    replaceable abstraction (see backend.mission_pipeline.field_images).
+    """
+    value = os.environ.get("ORION_FIELD_IMAGE_DIR", "data/field_images").strip()
+    directory = value or "data/field_images"
+    os.makedirs(directory, exist_ok=True)
+    return directory
 
 
 def _tick_interval_from_env() -> float:

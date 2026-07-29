@@ -29,6 +29,21 @@ export interface Obstacle {
   readonly points: readonly MetricPoint[];
 }
 
+/** Origin of an uploaded field image. */
+export type FieldImageSource = "satellite" | "drone" | "manual";
+
+/** Reference to an uploaded field annotation image (metadata only). */
+export interface FieldImage {
+  readonly image_id: string;
+  readonly filename: string;
+  readonly source: FieldImageSource;
+  /** Backend path to fetch the image bytes (read-only). */
+  readonly url: string;
+  readonly width_px: number;
+  readonly height_px: number;
+  readonly uploaded_ms: number;
+}
+
 export interface FieldSpec {
   readonly name: string;
   readonly crop_type: string;
@@ -36,6 +51,22 @@ export interface FieldSpec {
   readonly area_ha?: number | null;
   readonly zones: readonly Zone[];
   readonly obstacles: readonly Obstacle[];
+  readonly images: readonly FieldImage[];
+  /**
+   * Scale relating the annotation image to metric space. Operator drawings on
+   * the uploaded image are stored as metric geometry (meters) using this scale.
+   */
+  readonly meters_per_pixel: number;
+  readonly location: string;
+  readonly notes: string;
+}
+
+/** A persisted, reusable field: its FieldSpec plus identity + timestamps. */
+export interface FieldDefinition extends FieldSpec {
+  readonly id: string;
+  readonly version: number;
+  readonly created_ms: number;
+  readonly updated_ms: number;
 }
 
 export interface EnvironmentParams {
@@ -119,6 +150,11 @@ export const PIPELINE_ENDPOINTS = {
   FIELDS: "/api/fields",
   /** A single field record. */
   FIELD: (fieldId: string) => `/api/fields/${fieldId}`,
+  /** Upload an image to a field (raw body). */
+  FIELD_IMAGES: (fieldId: string) => `/api/fields/${fieldId}/images`,
+  /** Fetch an uploaded field image (read-only). */
+  FIELD_IMAGE: (fieldId: string, imageId: string) =>
+    `/api/fields/${fieldId}/images/${imageId}`,
   /** Mission definitions (list / create). */
   MISSIONS: "/api/missions",
   /** A single mission definition. */

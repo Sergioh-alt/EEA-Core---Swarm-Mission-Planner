@@ -25,12 +25,32 @@ the backend (Hive). The UI never plans, schedules, optimizes, or mutates state.
 | `/fleet`, `/fleet/[id]` | Fleet list and per-drone detail |
 | `/mission` | Mission summary |
 | `/map` | Full interactive geographic map |
+| `/fields`, `/fields/[id]` | Field acquisition & preparation (create, upload imagery, annotate geometry) |
 | `/planning` | Read-only preview of the backend-owned coverage route |
 | `/deployment` | Deploy (START_MISSION intent) |
 | `/mission/replay` | Read-only historical replay |
 | `/analytics` | Backend-derived mission analytics |
 | `/alerts` | Alert feed |
 | `/settings` | Configuration / boundary info |
+
+## Field preparation workflow (Phase 10D.3)
+
+Before generating a mission, prepare the field. This is **input collection only**
+— no planning, routing, or perception happens here.
+
+1. **Create a field.** Open `/fields`, enter a name / crop / location, and create.
+2. **Upload imagery.** In the preparation workspace, choose a source
+   (satellite / drone / manual) and upload an image. Switch between images with the
+   image strip.
+3. **Set scale.** Enter meters-per-pixel so drawings map to metric geometry.
+4. **Annotate.** Pick a tool — Boundary, Crop / Management / Treatment / Exclusion
+   zones, or Obstacle (tree/pole/building/…) — click points on the image, then
+   double-click or **Finish** to close the polygon.
+5. **Edit.** In Select mode, click a shape to highlight it; rename, enable/disable
+   (zones), or remove geometry from the list.
+6. **Save / Reload.** **Save Field** persists the definition (geometry + metadata +
+   image references); **Reload** restores the last saved state. The saved field is
+   later referenced by a Mission Definition and consumed by the Planning Core.
 
 ## Golden-path workflow
 
