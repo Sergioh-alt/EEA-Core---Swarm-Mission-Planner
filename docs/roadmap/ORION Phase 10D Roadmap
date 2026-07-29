@@ -1,0 +1,371 @@
+Objetivo General
+
+Transform Phase 10 from a Mission Control demonstration into a complete end-to-end operational simulation that reproduces the full agricultural workflow without requiring physical hardware.
+
+Phase 10D completes the demonstration platform.
+
+It does not introduce production autonomy, hardware integration, or commercial infrastructure.
+
+Those remain part of Phase 11 and beyond.
+
+Overall Workflow
+Field Acquisition
+        │
+        ▼
+Field Preparation
+        │
+        ▼
+Mission Planning
+        │
+        ▼
+Fleet Configuration
+        │
+        ▼
+Mission Review
+        │
+        ▼
+Mission Deployment
+        │
+        ▼
+Mission Control
+        │
+        ▼
+Replay & Analytics
+        │
+        ▼
+Mission Library
+Phase 10D.1
+
+Field Acquisition
+
+Purpose
+
+Allow the operator to create the digital representation of the real farm.
+
+Capabilities
+
+• Upload orthomosaic
+
+• Upload satellite image
+
+• Upload drone image
+
+• Import GeoTIFF
+
+• Import PNG
+
+• Import JPG
+
+• Create new field
+
+• Open existing field
+
+Deliverable
+
+Operational field acquisition interface.
+
+Phase 10D.2
+
+Field Preparation
+
+Purpose
+
+Transform an image into an operational agricultural map.
+
+Capabilities
+
+Draw field boundaries
+
+Draw exclusion zones
+
+Draw obstacles
+
+Draw trees
+
+Draw poles
+
+Draw irrigation systems
+
+Draw roads
+
+Draw buildings
+
+Define crop regions
+
+Multiple crop types
+
+Multiple management zones
+
+Manual corrections
+
+Layer system
+
+Visibility controls
+
+Undo / Redo
+
+Deliverable
+
+Digital operational field.
+
+Phase 10D.3
+
+Mission Planning
+
+Purpose
+
+Convert the prepared field into a mission.
+
+Capabilities
+
+Select treatment zones
+
+Select execution zones
+
+Enable
+
+Disable
+
+Automatic route generation
+
+Manual route editing
+
+Waypoint editing
+
+Flight altitude
+
+Speed
+
+Overlap
+
+Spraying parameters
+
+Coverage preview
+
+Mission estimation
+
+Mission validation
+
+Deliverable
+
+Executable mission definition.
+
+Phase 10D.4
+
+Fleet Configuration
+
+Purpose
+
+Configure which drones will execute the mission.
+
+Capabilities
+
+Select drones
+
+Drone capabilities
+
+Payload
+
+Tank capacity
+
+Battery
+
+Speed
+
+Working width
+
+Vendor
+
+ORION
+
+DJI
+
+Mixed fleet
+
+Fleet availability
+
+Mission compatibility
+
+Consumables
+
+Chemical selection
+
+Tank assignment
+
+Estimated consumption
+
+Deliverable
+
+Mission execution package.
+
+Phase 10D.5
+
+Mission Review
+
+Purpose
+
+Validate everything before deployment.
+
+Capabilities
+
+Mission summary
+
+Field summary
+
+Fleet summary
+
+Coverage
+
+Estimated duration
+
+Battery estimation
+
+Product estimation
+
+Warnings
+
+Export PDF
+
+Save template
+
+Save reusable mission
+
+Schedule mission
+
+Deliverable
+
+Deployment-ready mission.
+
+Phase 10D.6
+
+Mission Execution
+
+Purpose
+
+Run the Digital Twin simulation.
+
+Capabilities
+
+Deploy
+
+Pause
+
+Resume
+
+Stop
+
+Emergency Stop
+
+Live telemetry
+
+Mission progress
+
+Fleet status
+
+Map visualization
+
+Replay recording
+
+Analytics generation
+
+Deliverable
+
+Live Mission Control demonstration.
+
+Phase 10D.7
+
+Mission Library
+
+Purpose
+
+Store missions for future reuse.
+
+Capabilities
+
+Mission history
+
+Favorite missions
+
+Reusable templates
+
+Scheduled missions
+
+Import
+
+Export
+
+Duplicate
+
+Clone
+
+Archive
+
+Search
+
+Filter
+
+Deliverable
+
+Operational mission repository.
+
+Out of Scope
+
+Hardware communication
+
+PX4 improvements
+
+Hive improvements
+
+HAL improvements
+
+Optimization improvements
+
+Decision Engine improvements
+
+Commercial authentication
+
+Cloud synchronization
+
+Database redesign
+
+Production scalability
+
+Phase 11 begins after Phase 10D validation.
+
+Success Criteria
+
+The demonstration allows an operator to:
+
+Upload a real farm
+
+Prepare the field
+
+Configure agricultural zones
+
+Plan a mission
+
+Configure a heterogeneous fleet
+
+Review the mission
+
+Execute it
+
+Observe live simulation
+
+Replay the mission
+
+Analyze metrics
+
+Save the mission
+
+Reload it
+
+Repeat the process
+
+without requiring any physical drone.
+
+Demo Goal
+
+An investor or customer should be able to understand the complete ORION operational workflow from beginning to end without imagining missing steps.
+
+Every major operation should have a visible interface, a clear transition, and a consistent simulation backed by the Digital Twin.
