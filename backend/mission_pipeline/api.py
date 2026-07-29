@@ -25,16 +25,21 @@ Contract:
 from __future__ import annotations
 
 from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
+from backend.mission_pipeline.field_images import FieldImageStore
 from backend.mission_pipeline.fleet_inventory import get_fleet_inventory
 from backend.mission_pipeline.models import (
     DefinitionValidationError,
+    FieldDefinition,
     MissionDefinition,
 )
 from backend.mission_pipeline.persistence import DefinitionStore, NotFoundError
 from backend.mission_pipeline.planning_core import build_mission_package
 from backend.serializers import JSONObject
+
+# Uploads are read as raw request bodies (no python-multipart dependency).
+_MAX_IMAGE_BYTES = 25 * 1024 * 1024
 
 
 async def _read_json_object(request: Request) -> JSONObject:
@@ -44,8 +49,11 @@ async def _read_json_object(request: Request) -> JSONObject:
     return body
 
 
-def create_pipeline_router(store: DefinitionStore) -> APIRouter:
-    """Build the Mission Definition Pipeline router bound to a store."""
+def create_pipeline_router(
+    store: DefinitionStore,
+    image_store: FieldImageStore,
+) -> APIRouter:
+    """Build the Mission Definition Pipeline router bound to its stores."""
     router = APIRouter()
 
     # -- fleet inventory -----------------------------------------------------
@@ -54,7 +62,7 @@ def create_pipeline_router(store: DefinitionStore) -> APIRouter:
     async def fleet_inventory() -> JSONResponse:
         return JSONResponse(get_fleet_inventory())
 
-    # -- fields --------------------------------------------------------------
+    # -- fields (typed FieldDefinition — Phase 10D.3) ------------------------
 
     @router.get("/api/fields")
     async def list_fields() -> JSONResponse:
@@ -64,10 +72,10 @@ def create_pipeline_router(store: DefinitionStore) -> APIRouter:
     async def create_field(request: Request) -> JSONResponse:
         try:
             body = await _read_json_object(request)
+            definition = FieldDefinition.from_json(body)
         except (ValueError, DefinitionValidationError) as exc:
             return _bad_request(str(exc))
-        field_id = _field_id(body)
-        record = store.save_field(field_id, body)
+        record = store.save_field(definition.id, definition.to_json())
         return JSONResponse(record, status_code=201)
 
     @router.get("/api/fields/{field_id}")
@@ -81,9 +89,12 @@ def create_pipeline_router(store: DefinitionStore) -> APIRouter:
     async def update_field(field_id: str, request: Request) -> JSONResponse:
         try:
             body = await _read_json_object(request)
+            body["id"] = field_id
+            definition = FieldDefinition.from_json(body)
         except (ValueError, DefinitionValidationError) as exc:
             return _bad_request(str(exc))
-        return JSONResponse(store.save_field(field_id, body))
+        definition.version += 1
+        return JSONResponse(store.save_field(field_id, definition.to_json()))
 
     @router.delete("/api/fields/{field_id}")
     async def delete_field(field_id: str) -> JSONResponse:
@@ -92,6 +103,51 @@ def create_pipeline_router(store: DefinitionStore) -> APIRouter:
         except NotFoundError:
             return _not_found("field", field_id)
         return JSONResponse({"deleted": field_id})
+
+    # -- field images --------------------------------------------------------
+
+    @router.post("/api/fields/{field_id}/images")
+    async def upload_field_image(field_id: str, request: Request) -> JSONResponse:
+        try:
+            record = store.get_field(field_id)
+        except NotFoundError:
+            return _not_found("field", field_id)
+
+        data = await request.body()
+        if not data:
+            return _bad_request("Empty image body")
+        if len(data) > _MAX_IMAGE_BYTES:
+            return _bad_request("Image exceeds maximum size")
+
+        filename = request.query_params.get("filename", "upload.png")
+        source = request.query_params.get("source", "manual")
+        image = image_store.save(field_id, filename, source, data)
+
+        # Attach the image reference to the stored field (design-time only).
+        definition = FieldDefinition.from_json(record)
+        definition.spec.images.append(image)
+        store.save_field(field_id, definition.to_json())
+
+        return JSONResponse(
+            {
+                "image_id": image.image_id,
+                "filename": image.filename,
+                "source": image.source,
+                "url": image.url,
+                "width_px": image.width_px,
+                "height_px": image.height_px,
+                "uploaded_ms": image.uploaded_ms,
+            },
+            status_code=201,
+        )
+
+    @router.get("/api/fields/{field_id}/images/{image_id}")
+    async def get_field_image(field_id: str, image_id: str) -> Response:
+        try:
+            data, media_type = image_store.read(field_id, image_id)
+        except FileNotFoundError:
+            return _not_found("image", image_id)
+        return Response(content=data, media_type=media_type)
 
     # -- mission definitions -------------------------------------------------
 
@@ -170,15 +226,6 @@ def create_pipeline_router(store: DefinitionStore) -> APIRouter:
         return JSONResponse(package.to_json())
 
     return router
-
-
-def _field_id(body: JSONObject) -> str:
-    candidate = body.get("id")
-    if isinstance(candidate, str) and candidate.strip():
-        return candidate
-    import uuid
-
-    return f"field_{uuid.uuid4().hex[:12]}"
 
 
 def _bad_request(message: str) -> JSONResponse:

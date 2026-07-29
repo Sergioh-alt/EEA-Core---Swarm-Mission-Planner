@@ -23,20 +23,28 @@ Phase 11 without rebuilding the contract.
 
 from backend.mission_pipeline.models import (
     EnvironmentParams,
+    FieldDefinition,
+    FieldImage,
     FieldSpec,
     FleetItem,
     MissionDefinition,
     MissionPackage,
+    Obstacle,
     OperationParams,
     ProductSelection,
+    Zone,
 )
 
 __all__ = [
     "EnvironmentParams",
+    "FieldDefinition",
+    "FieldImage",
     "FieldSpec",
     "FleetItem",
     "MissionDefinition",
     "MissionPackage",
+    "Obstacle",
     "OperationParams",
     "ProductSelection",
+    "Zone",
 ]
