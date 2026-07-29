@@ -1,0 +1,418 @@
+ORION Phase 10D Operational Workflows
+Purpose
+
+This document defines the official operator workflows implemented during Phase 10D.
+
+These workflows describe how a user interacts with ORION from the first uploaded image to the completed simulated mission.
+
+They represent the reference operational flow for demonstrations, validation sessions, and investor presentations.
+
+Workflow 1 — Create a New Field
+Open ORION
+
+↓
+
+Fields
+
+↓
+
+Create Field
+
+↓
+
+Name
+
+↓
+
+Location
+
+↓
+
+Description
+
+↓
+
+Upload Orthomosaic / Satellite Image
+
+↓
+
+Create
+
+Result
+
+A new digital field is created.
+
+Workflow 2 — Prepare the Field
+Open Field
+
+↓
+
+Preparation
+
+↓
+
+Trace farm boundary
+
+↓
+
+Add exclusion zones
+
+↓
+
+Add obstacles
+
+↓
+
+Add infrastructure
+
+↓
+
+Split management zones
+
+↓
+
+Assign crop type
+
+↓
+
+Save
+
+Result
+
+Operational agricultural map.
+
+Workflow 3 — Build a Mission
+Mission Planning
+
+↓
+
+Select field
+
+↓
+
+Select execution zones
+
+↓
+
+Choose planning mode
+
+Automatic
+
+or
+
+Manual
+
+↓
+
+Review generated routes
+
+↓
+
+Adjust if needed
+
+↓
+
+Save Mission
+
+Result
+
+Mission ready for fleet assignment.
+
+Workflow 4 — Configure Fleet
+Mission
+
+↓
+
+Fleet
+
+↓
+
+Select drones
+
+↓
+
+ORION
+
+↓
+
+DJI
+
+↓
+
+Mixed Fleet
+
+↓
+
+Assign payload
+
+↓
+
+Assign tanks
+
+↓
+
+Assign products
+
+↓
+
+Review compatibility
+
+↓
+
+Continue
+
+Result
+
+Fleet configured.
+
+Workflow 5 — Mission Review
+Mission Summary
+
+↓
+
+Coverage
+
+↓
+
+Duration
+
+↓
+
+Battery
+
+↓
+
+Products
+
+↓
+
+Warnings
+
+↓
+
+Operator Approval
+
+Available actions
+
+Deploy
+
+Save Template
+
+Schedule
+
+Export
+
+Cancel
+
+Workflow 6 — Execute Mission
+Deploy
+
+↓
+
+Digital Twin
+
+↓
+
+Simulation Starts
+
+↓
+
+Mission Control
+
+↓
+
+Telemetry
+
+↓
+
+Fleet
+
+↓
+
+Map
+
+↓
+
+Analytics
+
+↓
+
+Mission Complete
+
+Operator controls
+
+Pause
+
+Resume
+
+Stop
+
+Emergency Stop
+
+Workflow 7 — Replay
+Mission Complete
+
+↓
+
+Replay
+
+↓
+
+Timeline
+
+↓
+
+Playback
+
+↓
+
+Jump
+
+↓
+
+Speed Control
+
+↓
+
+Historical Reconstruction
+
+Replay is strictly read-only.
+
+Workflow 8 — Analytics
+Mission
+
+↓
+
+Analytics
+
+↓
+
+Coverage
+
+↓
+
+Duration
+
+↓
+
+Fleet Utilization
+
+↓
+
+Battery
+
+↓
+
+Events
+
+↓
+
+Alerts
+
+↓
+
+Export Report
+Workflow 9 — Mission Library
+Mission Library
+
+↓
+
+History
+
+↓
+
+Templates
+
+↓
+
+Favorites
+
+↓
+
+Scheduled Missions
+
+↓
+
+Search
+
+↓
+
+Open
+
+↓
+
+Duplicate
+
+↓
+
+Deploy Again
+Workflow 10 — Scheduled Operations (Demo)
+Mission Library
+
+↓
+
+Scheduled Missions
+
+↓
+
+Create Schedule
+
+↓
+
+Choose Date
+
+↓
+
+Choose Time
+
+↓
+
+Repeat
+
+↓
+
+Daily
+
+Weekly
+
+Monthly
+
+↓
+
+Save
+
+In Phase 10D, scheduling only stores the plan.
+
+Actual autonomous execution belongs to Phase 11.
+
+Workflow 11 — Template-Based Operations
+Mission Templates
+
+↓
+
+Select Template
+
+↓
+
+Review
+
+↓
+
+Adjust Parameters
+
+↓
+
+Deploy
+
+This demonstrates how recurring agricultural operations can be reused without rebuilding the mission from scratch.
+
+Workflow Principles
+
+Every workflow follows the same philosophy:
+
+One clear direction from left to right.
+No hidden operator decisions.
+No business logic in the UI.
+Every action becomes an Intent.
+The Digital Twin remains the only runtime source of truth.
+The UI never performs planning, optimization, scheduling, or resource allocation.
