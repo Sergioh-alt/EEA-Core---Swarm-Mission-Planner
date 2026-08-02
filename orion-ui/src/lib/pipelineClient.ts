@@ -13,6 +13,8 @@ import {
   type FieldImage,
   type FieldImageSource,
   type FleetInventory,
+  type MissionDefinition,
+  type MissionPackage,
 } from "@/contracts/mission";
 import { restBaseUrl } from "@/lib/config";
 
@@ -145,6 +147,64 @@ export class PipelineClient {
       method: "POST",
       headers: { "Content-Type": file.type || "application/octet-stream" },
       body: buffer,
+    });
+  }
+
+  // -- mission definitions ---------------------------------------------------
+
+  async listMissions(): Promise<MissionDefinition[]> {
+    const data = await this.request<{ missions: MissionDefinition[] }>(
+      PIPELINE_ENDPOINTS.MISSIONS
+    );
+    return data.missions ?? [];
+  }
+
+  async getMission(missionId: string): Promise<MissionDefinition> {
+    return this.request<MissionDefinition>(
+      PIPELINE_ENDPOINTS.MISSION(missionId)
+    );
+  }
+
+  async createMission(
+    mission: Partial<MissionDefinition>
+  ): Promise<MissionDefinition> {
+    return this.request<MissionDefinition>(PIPELINE_ENDPOINTS.MISSIONS, {
+      method: "POST",
+      body: JSON.stringify(mission),
+    });
+  }
+
+  async updateMission(
+    missionId: string,
+    mission: Partial<MissionDefinition>
+  ): Promise<MissionDefinition> {
+    return this.request<MissionDefinition>(
+      PIPELINE_ENDPOINTS.MISSION(missionId),
+      {
+        method: "PUT",
+        body: JSON.stringify(mission),
+      }
+    );
+  }
+
+  async deleteMission(missionId: string): Promise<void> {
+    await this.request<{ deleted: string }>(
+      PIPELINE_ENDPOINTS.MISSION(missionId),
+      { method: "DELETE" }
+    );
+  }
+
+  // -- planning core (design-time; never mutates runtime state) --------------
+
+  /**
+   * Submit a stored mission to the Planning Core and receive a Mission Package.
+   * The Planning Core (core/) performs all environment analysis, swarm
+   * planning, routing, resource planning, risk analysis and timeline work.
+   */
+  async computePlanning(missionId: string): Promise<MissionPackage> {
+    return this.request<MissionPackage>(PIPELINE_ENDPOINTS.PLANNING_COMPUTE, {
+      method: "POST",
+      body: JSON.stringify({ mission_id: missionId }),
     });
   }
 }
