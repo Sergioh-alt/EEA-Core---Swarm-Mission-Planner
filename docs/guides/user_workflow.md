@@ -52,6 +52,41 @@ Before generating a mission, prepare the field. This is **input collection only*
    image references); **Reload** restores the last saved state. The saved field is
    later referenced by a Mission Definition and consumed by the Planning Core.
 
+## Mission Designer (10D.4)
+
+Turn a prepared field into a complete **Mission Definition**. The Mission
+Designer only collects parameters and constructs the definition — it performs no
+planning, routing, optimization, allocation, or scheduling, and never contacts
+the Digital Twin.
+
+1. **Create a mission.** Open `/missions`, pick a prepared field, name the
+   mission, and create it. This opens the designer at `/missions/{id}`.
+2. **Mission information.** Set description, execution priority, estimated
+   execution date, and optional notes. (Captured only — no scheduling logic.)
+3. **Zone selection.** The prepared field renders read-only. Include/exclude
+   individual zones or use **Select entire field**. Fields without zones cover
+   the whole boundary.
+4. **Agricultural operation.** Choose spraying / fertilization / seeding /
+   mapping / inspection / custom.
+5. **Product configuration.** Add products from the catalog and set rate, tank,
+   concentration, dilution, and safety notes. Multiple products are supported.
+   (No consumption or allocation is computed.)
+6. **Operational parameters.** Preferences only — flight altitude, nominal
+   speed, overlap, safety margin, coverage direction, route preference, planning
+   mode, drones requested. The Planning Core decides how to use them.
+7. **Fleet selection.** Add available assets from the Fleet Inventory (ORION /
+   third-party / mixed). Specifications are read-only; no allocation happens.
+8. **Completeness.** The right column checks interface completeness only (name,
+   field, zone participation, operation, product, altitude, fleet) — never
+   operational feasibility.
+9. **Preview.** Review the full Mission Definition summary. This is a definition
+   preview, not yet a Mission Package.
+10. **Submit to Planning Core.** Saves the definition and submits it to the
+    existing `POST /api/planning/compute` (10D.2). The Planning Core runs all
+    environment analysis, swarm planning, routing, resourcing, risk analysis,
+    timeline and recommendation, and returns a **Mission Package** shown
+    read-only.
+
 ## Golden-path workflow
 
 1. **Connect.** Open `/control`. The header shows `Connected` when the WebSocket is

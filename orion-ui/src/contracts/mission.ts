@@ -76,17 +76,31 @@ export interface EnvironmentParams {
 
 export type PlanningMode = "manual" | "assisted" | "automatic";
 
+export type CoverageDirection = "auto" | "north_south" | "east_west";
+export type RoutePreference = "balanced" | "time" | "battery";
+
 export interface OperationParams {
   readonly operation_type: string;
   readonly num_drones: number;
   readonly flight_altitude_m?: number | null;
   readonly planning_mode: PlanningMode;
+  /** Mission Designer preferences (10D.4) — hints only, Planning Core decides. */
+  readonly nominal_speed_ms?: number | null;
+  readonly overlap_pct?: number | null;
+  readonly safety_margin_m?: number | null;
+  readonly coverage_direction?: CoverageDirection;
+  readonly route_preference?: RoutePreference;
 }
 
 export interface ProductSelection {
   readonly product_id: string;
   readonly name: string;
   readonly rate_l_per_ha?: number | null;
+  /** Mission Designer application details (10D.4) — captured, not allocated. */
+  readonly tank?: string | null;
+  readonly concentration_pct?: number | null;
+  readonly dilution?: string | null;
+  readonly safety_notes?: string;
 }
 
 export interface FleetItem {
@@ -98,6 +112,8 @@ export interface FleetItem {
   readonly working_width_m?: number | null;
 }
 
+export type MissionPriority = "low" | "normal" | "high" | "urgent";
+
 /** The central editable contract every planning screen writes to. */
 export interface MissionDefinition {
   readonly id: string;
@@ -107,6 +123,12 @@ export interface MissionDefinition {
   readonly created_ms: number;
   readonly updated_ms: number;
   readonly field: FieldSpec;
+  /** Source prepared field this definition was built from (10D.4). */
+  readonly field_id?: string;
+  readonly priority?: MissionPriority;
+  /** Operator estimate (ISO date). Captured only — not a schedule. */
+  readonly scheduled_date?: string;
+  readonly notes?: string;
   readonly operation: OperationParams;
   readonly environment: EnvironmentParams;
   readonly fleet: readonly FleetItem[];
@@ -136,8 +158,18 @@ export interface MissionPackage {
   readonly execution: Record<string, unknown>;
 }
 
+/** A selectable drone model from the read-only Fleet Inventory. */
+export interface FleetModel {
+  readonly model: string;
+  readonly vendor: string;
+  readonly battery_capacity_mah: number;
+  readonly liquid_capacity_l: number;
+  readonly working_width_m?: number | null;
+  readonly max_speed_kmh?: number | null;
+}
+
 export interface FleetInventory {
-  readonly drone_models: readonly Record<string, unknown>[];
+  readonly drone_models: readonly FleetModel[];
   readonly products: readonly ProductSelection[];
   readonly crop_types: readonly string[];
 }

@@ -99,21 +99,43 @@ class EnvironmentParams:
 
 @dataclass
 class OperationParams:
-    """Operator planning preferences (intent only — never a computed plan)."""
+    """
+    Operator planning preferences (intent only — never a computed plan).
+
+    The Mission Designer (10D.4) captures additional preferences (speed,
+    overlap, safety margin, coverage direction, route preference). These are
+    hints only: the Planning Core decides how to use them. They are optional so
+    earlier (10D.2/10D.3) payloads deserialize unchanged.
+    """
 
     operation_type: str = "spray"
     num_drones: int = 3
     flight_altitude_m: Optional[float] = None
     planning_mode: str = "automatic"  # "manual" | "assisted" | "automatic"
+    nominal_speed_ms: Optional[float] = None
+    overlap_pct: Optional[float] = None
+    safety_margin_m: Optional[float] = None
+    coverage_direction: str = "auto"  # "auto" | "north_south" | "east_west"
+    route_preference: str = "balanced"  # "balanced" | "time" | "battery"
 
 
 @dataclass
 class ProductSelection:
-    """A chemical/product association (available assets, not allocation)."""
+    """
+    A chemical/product association (available assets, not allocation).
+
+    The Mission Designer (10D.4) captures application details (tank,
+    concentration, dilution, safety notes). These are optional so earlier
+    payloads deserialize unchanged. No consumption/allocation is computed here.
+    """
 
     product_id: str
     name: str
     rate_l_per_ha: Optional[float] = None
+    tank: Optional[str] = None
+    concentration_pct: Optional[float] = None
+    dilution: Optional[str] = None
+    safety_notes: str = ""
 
 
 @dataclass
@@ -139,6 +161,12 @@ class MissionDefinition:
     fleet: list[FleetItem] = field(default_factory=list)
     products: list[ProductSelection] = field(default_factory=list)
     description: str = ""
+    # Mission information captured by the Mission Designer (10D.4). Design-time
+    # metadata only — no scheduling/priority logic is performed on these.
+    field_id: str = ""
+    priority: str = "normal"  # "low" | "normal" | "high" | "urgent"
+    scheduled_date: str = ""  # operator estimate (ISO date), not a schedule
+    notes: str = ""
     id: str = field(default_factory=lambda: f"mission_{uuid.uuid4().hex[:12]}")
     version: int = 1
     created_ms: int = field(default_factory=lambda: int(time.time() * 1000))
@@ -155,11 +183,20 @@ class MissionDefinition:
             "created_ms": self.created_ms,
             "updated_ms": self.updated_ms,
             "field": _field_to_json(self.field),
+            "field_id": self.field_id,
+            "priority": self.priority,
+            "scheduled_date": self.scheduled_date,
+            "notes": self.notes,
             "operation": {
                 "operation_type": self.operation.operation_type,
                 "num_drones": self.operation.num_drones,
                 "flight_altitude_m": self.operation.flight_altitude_m,
                 "planning_mode": self.operation.planning_mode,
+                "nominal_speed_ms": self.operation.nominal_speed_ms,
+                "overlap_pct": self.operation.overlap_pct,
+                "safety_margin_m": self.operation.safety_margin_m,
+                "coverage_direction": self.operation.coverage_direction,
+                "route_preference": self.operation.route_preference,
             },
             "environment": {
                 "temperature_c": self.environment.temperature_c,
@@ -181,6 +218,10 @@ class MissionDefinition:
                     "product_id": p.product_id,
                     "name": p.name,
                     "rate_l_per_ha": p.rate_l_per_ha,
+                    "tank": p.tank,
+                    "concentration_pct": p.concentration_pct,
+                    "dilution": p.dilution,
+                    "safety_notes": p.safety_notes,
                 }
                 for p in self.products
             ],
@@ -200,6 +241,15 @@ class MissionDefinition:
                 num_drones=_as_int(op_data.get("num_drones"), 3),
                 flight_altitude_m=_as_opt_float(op_data.get("flight_altitude_m")),
                 planning_mode=_as_str(op_data.get("planning_mode"), "automatic"),
+                nominal_speed_ms=_as_opt_float(op_data.get("nominal_speed_ms")),
+                overlap_pct=_as_opt_float(op_data.get("overlap_pct")),
+                safety_margin_m=_as_opt_float(op_data.get("safety_margin_m")),
+                coverage_direction=_as_str(
+                    op_data.get("coverage_direction"), "auto"
+                ),
+                route_preference=_as_str(
+                    op_data.get("route_preference"), "balanced"
+                ),
             ),
             environment=EnvironmentParams(
                 temperature_c=_as_float(env_data.get("temperature_c"), 25.0),
@@ -210,6 +260,10 @@ class MissionDefinition:
                 _product_from_json(p) for p in _as_list(data.get("products"))
             ],
             description=_as_str(data.get("description"), ""),
+            field_id=_as_str(data.get("field_id"), ""),
+            priority=_as_str(data.get("priority"), "normal"),
+            scheduled_date=_as_str(data.get("scheduled_date"), ""),
+            notes=_as_str(data.get("notes"), ""),
         )
         # Preserve identity/versioning when reloading a persisted record.
         if isinstance(data.get("id"), str):
@@ -424,6 +478,10 @@ def _product_from_json(data: JSONObject) -> ProductSelection:
         product_id=_as_str(data.get("product_id"), f"prod_{uuid.uuid4().hex[:8]}"),
         name=_as_str(data.get("name"), ""),
         rate_l_per_ha=_as_opt_float(data.get("rate_l_per_ha")),
+        tank=_as_opt_str(data.get("tank")),
+        concentration_pct=_as_opt_float(data.get("concentration_pct")),
+        dilution=_as_opt_str(data.get("dilution")),
+        safety_notes=_as_str(data.get("safety_notes"), ""),
     )
 
 

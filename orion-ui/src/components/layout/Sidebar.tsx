@@ -16,6 +16,7 @@ import {
   Layers,
   Radio,
   MapPinned,
+  ClipboardList,
 } from "lucide-react";
 
 interface NavItem {
@@ -54,6 +55,11 @@ const NAV_ITEMS: NavItem[] = [
     label: "Fields",
     href: "/fields",
     icon: <MapPinned className="h-5 w-5" />,
+  },
+  {
+    label: "Missions",
+    href: "/missions",
+    icon: <ClipboardList className="h-5 w-5" />,
   },
   {
     label: "Planning",
