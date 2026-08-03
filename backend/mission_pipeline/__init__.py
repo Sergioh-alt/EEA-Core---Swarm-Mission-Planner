@@ -32,6 +32,7 @@ from backend.mission_pipeline.models import (
     Obstacle,
     OperationParams,
     ProductSelection,
+    TankConfig,
     Zone,
 )
 
@@ -46,5 +47,6 @@ __all__ = [
     "Obstacle",
     "OperationParams",
     "ProductSelection",
+    "TankConfig",
     "Zone",
 ]

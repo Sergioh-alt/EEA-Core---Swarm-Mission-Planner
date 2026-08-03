@@ -103,6 +103,18 @@ export interface ProductSelection {
   readonly safety_notes?: string;
 }
 
+/**
+ * An operator-assigned tank on a selected drone (Fleet Configuration, 10D.5).
+ * Assignment intent only — consumption/feasibility stay with the Planning Core.
+ */
+export interface TankConfig {
+  readonly tank_id: string;
+  readonly label?: string;
+  readonly capacity_l?: number | null;
+  readonly product_id?: string | null;
+  readonly product_name?: string | null;
+}
+
 export interface FleetItem {
   readonly drone_id: number;
   readonly model: string;
@@ -110,6 +122,17 @@ export interface FleetItem {
   readonly battery_capacity_mah: number;
   readonly liquid_capacity_l: number;
   readonly working_width_m?: number | null;
+  /** Fleet Configuration enrichment (10D.5) — catalog specs + operator config. */
+  readonly status?: string | null;
+  readonly payload_capacity_kg?: number | null;
+  readonly estimated_flight_time_min?: number | null;
+  readonly supported_operations?: readonly string[];
+  readonly sensors?: readonly string[];
+  readonly equipment?: readonly string[];
+  readonly camera_package?: string | null;
+  readonly sprayer_config?: string | null;
+  readonly granular_spreader?: string | null;
+  readonly tanks?: readonly TankConfig[];
 }
 
 export type MissionPriority = "low" | "normal" | "high" | "urgent";
@@ -158,6 +181,13 @@ export interface MissionPackage {
   readonly execution: Record<string, unknown>;
 }
 
+/** A tank slot advertised by a drone model in the inventory (read-only). */
+export interface FleetModelTank {
+  readonly tank_id: string;
+  readonly label: string;
+  readonly capacity_l: number;
+}
+
 /** A selectable drone model from the read-only Fleet Inventory. */
 export interface FleetModel {
   readonly model: string;
@@ -166,6 +196,16 @@ export interface FleetModel {
   readonly liquid_capacity_l: number;
   readonly working_width_m?: number | null;
   readonly max_speed_kmh?: number | null;
+  /** Read-only catalog specifications surfaced by Fleet Configuration (10D.5). */
+  readonly status?: string;
+  readonly payload_capacity_kg?: number | null;
+  readonly estimated_flight_time_min?: number | null;
+  readonly tanks?: readonly FleetModelTank[];
+  readonly supported_operations?: readonly string[];
+  readonly sensors?: readonly string[];
+  readonly equipment?: readonly string[];
+  readonly camera_packages?: readonly string[];
+  readonly sprayer_configs?: readonly string[];
 }
 
 export interface FleetInventory {

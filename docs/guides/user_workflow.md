@@ -85,7 +85,32 @@ the Digital Twin.
     existing `POST /api/planning/compute` (10D.2). The Planning Core runs all
     environment analysis, swarm planning, routing, resourcing, risk analysis,
     timeline and recommendation, and returns a **Mission Package** shown
-    read-only.
+    read-only. The package card lists any validation warnings/errors verbatim
+    (e.g. an unknown crop falls back to the generic profile — a non-blocking
+    warning, not an invalid definition).
+
+## Fleet Configuration (10D.5)
+
+Open from the Mission Designer's **Fleet Selection → Fleet Configuration →**
+link (route `/missions/[missionId]/fleet`). This workspace enriches the Mission
+Definition with the operational fleet; it performs no allocation or planning and
+never contacts the Digital Twin.
+
+1. **Fleet selection.** Add one or more available models (heterogeneous fleets
+   supported — e.g. ORION Standard, DJI Agras T40, XAG P100). Each shows
+   read-only catalog specs: status, payload, battery, endurance, tank capacity,
+   supported operations, sensors, equipment.
+2. **Equipment configuration** (per drone). Toggle installed equipment and the
+   sensor package; choose a camera package, sprayer configuration and (future-
+   compatible) granular spreader from the model's advertised options.
+3. **Tank & product assignment** (per drone). Assign a mission/catalog product
+   to each advertised tank (e.g. Tank A → Herbicide, Tank B → Fertilizer).
+4. **Fleet Summary** (informational). Drone count, total payload/liquid
+   capacity, limiting endurance, selected equipment, and a configuration-
+   completeness readiness indicator. Consumption, required capacity and
+   feasibility are computed by the Planning Core, not here.
+5. **Save fleet.** Persists the enriched fleet into the Mission Definition via
+   `PUT /api/missions/{id}`, ready for the Planning Core.
 
 ## Golden-path workflow
 

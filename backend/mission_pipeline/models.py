@@ -139,8 +139,34 @@ class ProductSelection:
 
 
 @dataclass
+class TankConfig:
+    """
+    An operator-assigned tank on a selected drone (assignment intent, not
+    allocation). Captured by the Fleet Configuration workspace (10D.5): which
+    product goes in which tank. Consumption/feasibility remain the Planning
+    Core's responsibility — nothing is computed here.
+    """
+
+    tank_id: str
+    label: str = ""
+    capacity_l: Optional[float] = None
+    product_id: Optional[str] = None
+    product_name: Optional[str] = None
+
+
+@dataclass
 class FleetItem:
-    """A selected available drone/asset (selection, not task assignment)."""
+    """
+    A selected available drone/asset (selection, not task assignment).
+
+    The Fleet Configuration workspace (10D.5) enriches each selected drone with
+    read-only catalog specs echoed from the inventory (status, payload, flight
+    time, supported operations, sensors) and the operator's equipment/tank
+    configuration (installed equipment, camera package, sprayer configuration,
+    granular spreader, per-tank product assignment). All fields are optional so
+    earlier (10D.2-10D.4) payloads deserialize unchanged, and none of them
+    cause allocation, optimization, or scheduling.
+    """
 
     drone_id: int
     model: str
@@ -148,6 +174,16 @@ class FleetItem:
     battery_capacity_mah: float
     liquid_capacity_l: float
     working_width_m: Optional[float] = None
+    status: Optional[str] = None
+    payload_capacity_kg: Optional[float] = None
+    estimated_flight_time_min: Optional[float] = None
+    supported_operations: list[str] = field(default_factory=list)
+    sensors: list[str] = field(default_factory=list)
+    equipment: list[str] = field(default_factory=list)
+    camera_package: Optional[str] = None
+    sprayer_config: Optional[str] = None
+    granular_spreader: Optional[str] = None
+    tanks: list[TankConfig] = field(default_factory=list)
 
 
 @dataclass
@@ -210,6 +246,25 @@ class MissionDefinition:
                     "battery_capacity_mah": item.battery_capacity_mah,
                     "liquid_capacity_l": item.liquid_capacity_l,
                     "working_width_m": item.working_width_m,
+                    "status": item.status,
+                    "payload_capacity_kg": item.payload_capacity_kg,
+                    "estimated_flight_time_min": item.estimated_flight_time_min,
+                    "supported_operations": list(item.supported_operations),
+                    "sensors": list(item.sensors),
+                    "equipment": list(item.equipment),
+                    "camera_package": item.camera_package,
+                    "sprayer_config": item.sprayer_config,
+                    "granular_spreader": item.granular_spreader,
+                    "tanks": [
+                        {
+                            "tank_id": t.tank_id,
+                            "label": t.label,
+                            "capacity_l": t.capacity_l,
+                            "product_id": t.product_id,
+                            "product_name": t.product_name,
+                        }
+                        for t in item.tanks
+                    ],
                 }
                 for item in self.fleet
             ],
@@ -470,6 +525,28 @@ def _fleet_item_from_json(data: JSONObject) -> FleetItem:
         battery_capacity_mah=_as_float(data.get("battery_capacity_mah"), 16000.0),
         liquid_capacity_l=_as_float(data.get("liquid_capacity_l"), 10.0),
         working_width_m=_as_opt_float(data.get("working_width_m")),
+        status=_as_opt_str(data.get("status")),
+        payload_capacity_kg=_as_opt_float(data.get("payload_capacity_kg")),
+        estimated_flight_time_min=_as_opt_float(
+            data.get("estimated_flight_time_min")
+        ),
+        supported_operations=_str_list(data.get("supported_operations")),
+        sensors=_str_list(data.get("sensors")),
+        equipment=_str_list(data.get("equipment")),
+        camera_package=_as_opt_str(data.get("camera_package")),
+        sprayer_config=_as_opt_str(data.get("sprayer_config")),
+        granular_spreader=_as_opt_str(data.get("granular_spreader")),
+        tanks=[_tank_from_json(t) for t in _as_list(data.get("tanks"))],
+    )
+
+
+def _tank_from_json(data: JSONObject) -> TankConfig:
+    return TankConfig(
+        tank_id=_as_str(data.get("tank_id"), f"tank_{uuid.uuid4().hex[:6]}"),
+        label=_as_str(data.get("label"), ""),
+        capacity_l=_as_opt_float(data.get("capacity_l")),
+        product_id=_as_opt_str(data.get("product_id")),
+        product_name=_as_opt_str(data.get("product_name")),
     )
 
 
@@ -520,6 +597,12 @@ def _points_from_json(value: JSONValue) -> list[tuple[float, float]]:
             if isinstance(x, (int, float)) and isinstance(y, (int, float)):
                 points.append((float(x), float(y)))
     return points
+
+
+def _str_list(value: JSONValue) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, str)]
 
 
 def _require_str(value: JSONValue, name: str) -> str:

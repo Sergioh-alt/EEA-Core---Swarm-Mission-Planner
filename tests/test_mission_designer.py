@@ -216,6 +216,23 @@ def test_designer_fields_do_not_break_planning_core() -> None:
     assert package["execution"]["num_drones"] == 1
 
 
+def test_unknown_crop_is_non_blocking_warning_not_invalid() -> None:
+    """
+    An unrecognised crop ('grapes' here) must not make the Mission Package
+    report an invalid definition while the recommendation says GO. The intake
+    falls back to the generic crop profile, so it is a warning, not an error.
+    """
+    definition = MissionDefinition.from_json(_mission_payload())
+    package = build_mission_package(definition).to_json()
+
+    validation = package["validation"]
+    assert validation["valid"] is True
+    assert validation["errors"] == []
+    assert any("grapes" in w for w in validation["warnings"])
+    # No contradiction: a valid definition accompanies the GO/feasible view.
+    assert package["recommendation"]["feasible"] is True
+
+
 def test_planning_compute_does_not_touch_runtime_state(client: TestClient) -> None:
     before = client.get("/api/twin/state").json()
     created = client.post("/api/missions", json=_mission_payload())
