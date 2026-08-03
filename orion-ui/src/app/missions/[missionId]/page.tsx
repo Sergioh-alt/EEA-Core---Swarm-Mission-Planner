@@ -363,6 +363,24 @@ export default function MissionDesignerPage() {
         battery_capacity_mah: model.battery_capacity_mah,
         liquid_capacity_l: model.liquid_capacity_l,
         working_width_m: model.working_width_m ?? null,
+        status: model.status ?? "available",
+        payload_capacity_kg: model.payload_capacity_kg ?? null,
+        estimated_flight_time_min: model.estimated_flight_time_min ?? null,
+        supported_operations: model.supported_operations
+          ? [...model.supported_operations]
+          : [],
+        sensors: model.sensors ? [...model.sensors] : [],
+        equipment: [],
+        camera_package: null,
+        sprayer_config: null,
+        granular_spreader: null,
+        tanks: (model.tanks ?? []).map((t) => ({
+          tank_id: t.tank_id,
+          label: t.label,
+          capacity_l: t.capacity_l,
+          product_id: null,
+          product_name: null,
+        })),
       },
     ]);
   }, []);
@@ -709,7 +727,17 @@ export default function MissionDesignerPage() {
           </Section>
 
           {/* 6. Fleet selection */}
-          <Section title="Fleet Selection">
+          <Section
+            title="Fleet Selection"
+            action={
+              <Link
+                href={`/missions/${missionId}/fleet`}
+                className="inline-flex items-center gap-1 rounded-md border border-neutral-700 px-2 py-1 text-[11px] text-blue-400 hover:bg-neutral-800"
+              >
+                Fleet Configuration →
+              </Link>
+            }
+          >
             {inventory && inventory.drone_models.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {inventory.drone_models.map((m) => (
@@ -1017,9 +1045,18 @@ function PackageResult({ pkg }: { pkg: MissionPackage }) {
         value={pkg.validation.valid ? "yes" : "no"}
       />
       {pkg.validation.warnings.length > 0 && (
-        <p className="text-[10px] text-amber-500">
-          {pkg.validation.warnings.length} planning warning(s)
-        </p>
+        <ul className="space-y-1 text-[10px] text-amber-500">
+          {pkg.validation.warnings.map((w, i) => (
+            <li key={i}>• {w}</li>
+          ))}
+        </ul>
+      )}
+      {pkg.validation.errors.length > 0 && (
+        <ul className="space-y-1 text-[10px] text-red-500">
+          {pkg.validation.errors.map((e, i) => (
+            <li key={i}>• {e}</li>
+          ))}
+        </ul>
       )}
       {rec.summary && (
         <p className="text-[11px] text-neutral-400">{rec.summary}</p>

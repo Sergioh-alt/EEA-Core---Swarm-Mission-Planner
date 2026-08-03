@@ -28,6 +28,9 @@ Raw captured test output lives in [`logs/`](logs/).
 | 10C.2 | [`phase_10c2_validation_report.md`](phase_10c2_validation_report.md), [`phase_10c2_architecture_compliance_report.md`](phase_10c2_architecture_compliance_report.md), [`phase_10c2_regression_report.md`](phase_10c2_regression_report.md) |
 | 10C.3 | [`phase_10c3_validation_report.md`](phase_10c3_validation_report.md), [`phase_10c3_ui_interaction_report.md`](phase_10c3_ui_interaction_report.md), [`phase_10c3_clean_clone_fix_report.md`](phase_10c3_clean_clone_fix_report.md) |
 | 10D.2 | [`phase_10d2_mission_definition_pipeline_validation.md`](phase_10d2_mission_definition_pipeline_validation.md) |
+| 10D.3 | [`phase_10d3_field_acquisition_implementation.md`](phase_10d3_field_acquisition_implementation.md), [`phase_10d3_field_acquisition_validation.md`](phase_10d3_field_acquisition_validation.md) |
+| 10D.4 | [`phase_10d4_mission_designer_implementation.md`](phase_10d4_mission_designer_implementation.md) |
+| 10D.5 | [`phase_10d5_fleet_configuration_implementation.md`](phase_10d5_fleet_configuration_implementation.md), [`phase_10d5_fleet_configuration_validation.md`](phase_10d5_fleet_configuration_validation.md) |
 
 > Phase 10C.1 was a design-only phase; its documentation lives under
 > [`../architecture/ui/`](../architecture/ui/) and has no validation report by design.

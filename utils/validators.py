@@ -7,6 +7,16 @@ from dataclasses import dataclass
 
 @dataclass
 class ValidationResult:
+    """
+    Input-sanity result for a mission definition.
+
+    ``valid`` reflects only *blocking* conditions (an unusable definition).
+    ``warnings`` are non-blocking advisories: the mission remains executable
+    and the Go/No-Go decision is computed independently downstream. Keeping
+    warnings out of ``valid`` prevents the Mission Package from reporting a
+    "not valid" definition while simultaneously recommending GO.
+    """
+
     valid: bool
     errors: list[str]
     warnings: list[str]
@@ -55,7 +65,12 @@ def validate_mission_inputs(
     from config.settings import CROP_PROFILES
     valid_crops = list(CROP_PROFILES.keys())
     if crop_type not in valid_crops:
-        errors.append(f"Unknown crop type '{crop_type}'. Valid: {valid_crops}")
+        # Non-blocking: mission_intake falls back to the "generic" crop
+        # profile for unrecognised crops, so the mission stays executable.
+        warnings.append(
+            f"Unknown crop type '{crop_type}'; using the generic crop "
+            f"profile. Known crops: {valid_crops}"
+        )
 
     return ValidationResult(
         valid=len(errors) == 0,
