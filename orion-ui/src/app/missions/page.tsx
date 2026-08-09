@@ -168,6 +168,12 @@ export default function MissionsPage() {
                     <span>{mission.products.length} products</span>
                   </div>
                 </Link>
+                <Link
+                  href={`/missions/${mission.id}/review`}
+                  className="ml-3 rounded-md border border-neutral-700 px-2 py-1 text-[11px] text-blue-400 transition-colors hover:bg-neutral-800"
+                >
+                  Review
+                </Link>
                 <button
                   type="button"
                   onClick={() => void handleDelete(mission.id)}

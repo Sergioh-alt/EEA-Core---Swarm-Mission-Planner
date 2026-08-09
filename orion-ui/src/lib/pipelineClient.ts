@@ -9,12 +9,16 @@
 
 import {
   PIPELINE_ENDPOINTS,
+  type DeploymentRecord,
+  type DeploymentResult,
   type FieldDefinition,
   type FieldImage,
   type FieldImageSource,
   type FleetInventory,
   type MissionDefinition,
   type MissionPackage,
+  type MissionReview,
+  type TwinDeployment,
 } from "@/contracts/mission";
 import { restBaseUrl } from "@/lib/config";
 
@@ -206,6 +210,44 @@ export class PipelineClient {
       method: "POST",
       body: JSON.stringify({ mission_id: missionId }),
     });
+  }
+
+  // -- mission review & deployment (10D.6) -----------------------------------
+
+  /** Read everything Mission Review renders: package + deployment record. */
+  async getReview(missionId: string): Promise<MissionReview> {
+    return this.request<MissionReview>(
+      PIPELINE_ENDPOINTS.MISSION_REVIEW(missionId)
+    );
+  }
+
+  /** Record operator confirmations. Never alters Planning Core output. */
+  async updateChecklist(
+    missionId: string,
+    confirmations: Record<string, boolean>
+  ): Promise<DeploymentRecord> {
+    return this.request<DeploymentRecord>(
+      PIPELINE_ENDPOINTS.MISSION_CHECKLIST(missionId),
+      { method: "PUT", body: JSON.stringify({ confirmations }) }
+    );
+  }
+
+  /**
+   * Submit the approved Mission Package to the Digital Twin.
+   *
+   * The backend re-reads the stored definition and hands the Planning Core
+   * package to the Twin unchanged; the UI supplies nothing but authorization.
+   */
+  async deployMission(missionId: string): Promise<DeploymentResult> {
+    return this.request<DeploymentResult>(
+      PIPELINE_ENDPOINTS.MISSION_DEPLOY(missionId),
+      { method: "POST" }
+    );
+  }
+
+  /** The Mission Package currently deployed to the Twin (Mission Control). */
+  async getTwinDeployment(): Promise<TwinDeployment> {
+    return this.request<TwinDeployment>(PIPELINE_ENDPOINTS.TWIN_DEPLOYMENT);
   }
 }
 

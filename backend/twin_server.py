@@ -14,6 +14,7 @@ Endpoints (mirror orion-ui/src/contracts/api.ts exactly):
     GET  /api/twin/replay/drone/{drone_id}
     POST /api/intents
     GET  /api/twin/analytics
+    GET  /api/twin/deployment
     GET  /api/mission/geometry
     WS   /ws/twin
 
@@ -162,7 +163,10 @@ def create_app(
     # Persistence + Planning-Core orchestration only; never mutates the
     # Digital Twin runtime and contains no decision logic.
     # ------------------------------------------------------------------
-    app.include_router(create_pipeline_router(store, images))
+    # The runtime is injected as the Digital Twin deployment interface
+    # (Phase 10D.6) so an approved Mission Package has exactly one path into
+    # execution; the pipeline itself imports no runtime module.
+    app.include_router(create_pipeline_router(store, images, runtime))
 
     # ------------------------------------------------------------------
     # REST — read-only
@@ -211,6 +215,11 @@ def create_app(
     @app.get("/api/twin/analytics")
     async def analytics() -> JSONResponse:
         return JSONResponse(runtime.analytics())
+
+    @app.get("/api/twin/deployment")
+    async def twin_deployment() -> JSONResponse:
+        """The Mission Package currently deployed to the Twin (Mission Control)."""
+        return JSONResponse(runtime.deployed_mission())
 
     @app.get("/api/mission/geometry")
     async def mission_geometry() -> JSONResponse:

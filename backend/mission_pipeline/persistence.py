@@ -19,6 +19,7 @@ import threading
 import time
 from typing import Optional
 
+from backend.mission_pipeline.deployment import DeploymentRecord
 from backend.mission_pipeline.models import MissionDefinition
 from backend.serializers import JSONObject
 
@@ -71,6 +72,20 @@ class DefinitionStore(abc.ABC):
     def delete_definition(self, definition_id: str) -> None:
         ...
 
+    # -- deployment records (Mission Review — 10D.6) -------------------------
+
+    @abc.abstractmethod
+    def save_deployment(self, record: DeploymentRecord) -> DeploymentRecord:
+        ...
+
+    @abc.abstractmethod
+    def get_deployment(self, mission_id: str) -> DeploymentRecord:
+        ...
+
+    @abc.abstractmethod
+    def delete_deployment(self, mission_id: str) -> None:
+        """Remove a deployment record; a missing record is not an error."""
+
 
 class SQLiteDefinitionStore(DefinitionStore):
     """
@@ -106,6 +121,15 @@ class SQLiteDefinitionStore(DefinitionStore):
                 """
                 CREATE TABLE IF NOT EXISTS mission_definitions (
                     id TEXT PRIMARY KEY,
+                    data TEXT NOT NULL,
+                    updated_ms INTEGER NOT NULL
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS mission_deployments (
+                    mission_id TEXT PRIMARY KEY,
                     data TEXT NOT NULL,
                     updated_ms INTEGER NOT NULL
                 )
@@ -191,6 +215,39 @@ class SQLiteDefinitionStore(DefinitionStore):
             if cur.rowcount == 0:
                 raise NotFoundError(definition_id)
 
+    # -- deployment records --------------------------------------------------
+
+    def save_deployment(self, record: DeploymentRecord) -> DeploymentRecord:
+        with self._lock, self._connect() as conn:
+            conn.execute(
+                "INSERT INTO mission_deployments (mission_id, data, updated_ms) "
+                "VALUES (?, ?, ?) ON CONFLICT(mission_id) DO UPDATE SET "
+                "data=excluded.data, updated_ms=excluded.updated_ms",
+                (
+                    record.mission_id,
+                    json.dumps(record.to_json()),
+                    record.updated_ms,
+                ),
+            )
+        return record
+
+    def get_deployment(self, mission_id: str) -> DeploymentRecord:
+        with self._lock, self._connect() as conn:
+            row = conn.execute(
+                "SELECT data FROM mission_deployments WHERE mission_id = ?",
+                (mission_id,),
+            ).fetchone()
+        if row is None:
+            raise NotFoundError(mission_id)
+        return DeploymentRecord.from_json(_load_object(row["data"]))
+
+    def delete_deployment(self, mission_id: str) -> None:
+        with self._lock, self._connect() as conn:
+            conn.execute(
+                "DELETE FROM mission_deployments WHERE mission_id = ?",
+                (mission_id,),
+            )
+
 
 class InMemoryDefinitionStore(DefinitionStore):
     """Non-persistent store for tests and ephemeral usage."""
@@ -198,6 +255,7 @@ class InMemoryDefinitionStore(DefinitionStore):
     def __init__(self) -> None:
         self._fields: dict[str, JSONObject] = {}
         self._definitions: dict[str, MissionDefinition] = {}
+        self._deployments: dict[str, DeploymentRecord] = {}
         self._lock = threading.Lock()
 
     def save_field(self, field_id: str, data: JSONObject) -> JSONObject:
@@ -245,6 +303,21 @@ class InMemoryDefinitionStore(DefinitionStore):
             if definition_id not in self._definitions:
                 raise NotFoundError(definition_id)
             del self._definitions[definition_id]
+
+    def save_deployment(self, record: DeploymentRecord) -> DeploymentRecord:
+        with self._lock:
+            self._deployments[record.mission_id] = record
+        return record
+
+    def get_deployment(self, mission_id: str) -> DeploymentRecord:
+        with self._lock:
+            if mission_id not in self._deployments:
+                raise NotFoundError(mission_id)
+            return self._deployments[mission_id]
+
+    def delete_deployment(self, mission_id: str) -> None:
+        with self._lock:
+            self._deployments.pop(mission_id, None)
 
 
 def _load_object(raw: str) -> JSONObject:

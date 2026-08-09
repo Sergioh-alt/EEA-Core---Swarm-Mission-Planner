@@ -24,6 +24,7 @@ from __future__ import annotations
 import math
 import threading
 import time
+import uuid
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -196,6 +197,10 @@ class TwinRuntime:
         self._mission_events: list[JSONObject] = []
         self._prev_active_failures: set[FailureType] = set()
 
+        self._deployed_package: Optional[JSONObject] = None
+        self._deployment_id: Optional[str] = None
+        self._deployment_ms: Optional[int] = None
+
     # -----------------------------------------------------------------
     # Failure configuration (available for on-demand injection)
     # -----------------------------------------------------------------
@@ -268,6 +273,54 @@ class TwinRuntime:
             self._mission_end_ms = _now_ms()
             self._add_mission_event("STOP", "Mission stopped by operator")
             return True
+
+    # -----------------------------------------------------------------
+    # Digital Twin deployment interface (Phase 10D.6)
+    # -----------------------------------------------------------------
+
+    def deploy_mission_package(self, package: JSONObject) -> JSONObject:
+        """
+        Receive an approved Mission Package from the Mission Definition Pipeline.
+
+        This is a transfer only. The package is stored verbatim as the deployed
+        mission of record: nothing is planned, re-routed, re-allocated or
+        re-timed here, and execution does NOT start — the mission still waits
+        for an explicit operator START intent in Mission Control.
+        """
+        with self._lock:
+            self._deployed_package = dict(package)
+            self._deployment_id = f"deploy_{uuid.uuid4().hex[:12]}"
+            self._deployment_ms = _now_ms()
+            definition_id = self._deployed_package.get("definition_id")
+            routes = self._deployed_package.get("routes")
+            route_count = len(routes) if isinstance(routes, list) else 0
+            self._add_mission_event(
+                "DEPLOY",
+                f"Mission Package {definition_id} deployed to the Digital Twin "
+                f"({route_count} routes) — awaiting operator start",
+            )
+            return {
+                "accepted": True,
+                "deployment_id": self._deployment_id,
+                "definition_id": definition_id,
+                "deployed_ms": self._deployment_ms,
+                "route_count": route_count,
+                "mission_status": self._mission_status.value,
+            }
+
+    def deployed_mission(self) -> JSONObject:
+        """The currently deployed Mission Package, for Mission Control handoff."""
+        with self._lock:
+            return {
+                "deployed": self._deployed_package is not None,
+                "deployment_id": self._deployment_id,
+                "deployed_ms": self._deployment_ms,
+                "package": (
+                    dict(self._deployed_package)
+                    if self._deployed_package is not None
+                    else None
+                ),
+            }
 
     def request_snapshot(self) -> str:
         with self._lock:

@@ -20,13 +20,31 @@ Contract:
     POST   /api/planning/compute                -> definition (inline or by id)
                                                    -> Mission Package (not stored)
     POST   /api/missions/{mission_id}/package   -> stored definition -> Mission Package
+
+    Mission Review & Deployment (Phase 10D.6):
+    GET    /api/missions/{mission_id}/review    -> Mission Package + deployment record
+    PUT    /api/missions/{mission_id}/checklist -> operator confirmations
+    POST   /api/missions/{mission_id}/deploy    -> transfer package to Digital Twin
+
+Deployment is the only endpoint that reaches the runtime, and it does so
+exclusively through the injected ``TwinDeploymentGateway``; the package is
+transferred unchanged and execution is never started here.
 """
 
 from __future__ import annotations
 
+from typing import Optional
+
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, Response
 
+from backend.mission_pipeline.deployment import (
+    DeploymentError,
+    DeploymentRecord,
+    TwinDeploymentGateway,
+    deploy_mission,
+    new_record,
+)
 from backend.mission_pipeline.field_images import FieldImageStore
 from backend.mission_pipeline.fleet_inventory import get_fleet_inventory
 from backend.mission_pipeline.models import (
@@ -52,9 +70,22 @@ async def _read_json_object(request: Request) -> JSONObject:
 def create_pipeline_router(
     store: DefinitionStore,
     image_store: FieldImageStore,
+    deployment_gateway: Optional[TwinDeploymentGateway] = None,
 ) -> APIRouter:
-    """Build the Mission Definition Pipeline router bound to its stores."""
+    """
+    Build the Mission Definition Pipeline router bound to its stores.
+
+    ``deployment_gateway`` is the Digital Twin deployment interface. It is
+    injected (never imported) so the pipeline keeps no runtime dependency; when
+    absent, deployment is unavailable and the design-time API still works.
+    """
     router = APIRouter()
+
+    def _deployment_for(mission_id: str) -> DeploymentRecord:
+        try:
+            return store.get_deployment(mission_id)
+        except NotFoundError:
+            return new_record(mission_id)
 
     # -- fleet inventory -----------------------------------------------------
 
@@ -176,6 +207,8 @@ def create_pipeline_router(
 
     @router.put("/api/missions/{mission_id}")
     async def update_mission(mission_id: str, request: Request) -> JSONResponse:
+        if _deployment_for(mission_id).is_locked:
+            return _locked(mission_id)
         try:
             body = await _read_json_object(request)
             body["id"] = mission_id
@@ -187,10 +220,13 @@ def create_pipeline_router(
 
     @router.delete("/api/missions/{mission_id}")
     async def delete_mission(mission_id: str) -> JSONResponse:
+        if _deployment_for(mission_id).is_locked:
+            return _locked(mission_id)
         try:
             store.delete_definition(mission_id)
         except NotFoundError:
             return _not_found("mission", mission_id)
+        store.delete_deployment(mission_id)
         return JSONResponse({"deleted": mission_id})
 
     # -- planning ------------------------------------------------------------
@@ -205,6 +241,9 @@ def create_pipeline_router(
         mission_id = body.get("mission_id")
         try:
             if isinstance(mission_id, str):
+                locked = _locked_package(_deployment_for(mission_id))
+                if locked is not None:
+                    return JSONResponse(locked)
                 definition = store.get_definition(mission_id)
             else:
                 definition = MissionDefinition.from_json(body)
@@ -218,6 +257,9 @@ def create_pipeline_router(
 
     @router.post("/api/missions/{mission_id}/package")
     async def package_for_mission(mission_id: str) -> JSONResponse:
+        locked = _locked_package(_deployment_for(mission_id))
+        if locked is not None:
+            return JSONResponse(locked)
         try:
             definition = store.get_definition(mission_id)
         except NotFoundError:
@@ -225,7 +267,110 @@ def create_pipeline_router(
         package = build_mission_package(definition)
         return JSONResponse(package.to_json())
 
+    # -- Mission Review & Deployment (Phase 10D.6) ---------------------------
+
+    @router.get("/api/missions/{mission_id}/review")
+    async def review(mission_id: str) -> JSONResponse:
+        """
+        Everything Mission Review renders: the Mission Package produced by the
+        Planning Core plus the operator/deployment record. Read-only — no
+        runtime state is touched and the Digital Twin is not contacted.
+        """
+        try:
+            definition = store.get_definition(mission_id)
+        except NotFoundError:
+            return _not_found("mission", mission_id)
+
+        record = _deployment_for(mission_id)
+        locked = _locked_package(record)
+        package = locked if locked is not None else build_mission_package(
+            definition
+        ).to_json()
+        return JSONResponse(
+            {
+                "mission": definition.to_json(),
+                "package": package,
+                "deployment": record.to_json(),
+                "deployment_available": deployment_gateway is not None,
+            }
+        )
+
+    @router.put("/api/missions/{mission_id}/checklist")
+    async def update_checklist(mission_id: str, request: Request) -> JSONResponse:
+        """Record operator confirmations. Never alters Planning Core output."""
+        try:
+            store.get_definition(mission_id)
+        except NotFoundError:
+            return _not_found("mission", mission_id)
+        try:
+            body = await _read_json_object(request)
+        except (ValueError, DefinitionValidationError) as exc:
+            return _bad_request(str(exc))
+
+        raw = body.get("confirmations")
+        if not isinstance(raw, dict):
+            return _bad_request("'confirmations' must be an object of id -> bool")
+        confirmations = {k: bool(v) for k, v in raw.items()}
+
+        record = _deployment_for(mission_id)
+        try:
+            record.confirm(confirmations)
+        except DeploymentError as exc:
+            return _conflict(str(exc))
+        return JSONResponse(store.save_deployment(record).to_json())
+
+    @router.post("/api/missions/{mission_id}/deploy")
+    async def deploy(mission_id: str) -> JSONResponse:
+        """
+        Submit the approved Mission Package to the Digital Twin — nothing else.
+
+        The package is (re)produced by the Planning Core from the stored
+        definition, so the runtime can only ever receive a Planning Core
+        artifact; the UI cannot supply or alter one.
+        """
+        try:
+            definition = store.get_definition(mission_id)
+        except NotFoundError:
+            return _not_found("mission", mission_id)
+        if deployment_gateway is None:
+            return JSONResponse(
+                {
+                    "error": "unavailable",
+                    "detail": "Digital Twin deployment interface is unavailable",
+                },
+                status_code=503,
+            )
+
+        record = _deployment_for(mission_id)
+        package = build_mission_package(definition).to_json()
+        try:
+            record, receipt = deploy_mission(
+                record, package, deployment_gateway, definition.version
+            )
+        except DeploymentError as exc:
+            return _conflict(str(exc))
+        store.save_deployment(record)
+        return JSONResponse({"deployment": record.to_json(), "receipt": receipt})
+
     return router
+
+
+def _locked_package(record: DeploymentRecord) -> Optional[JSONObject]:
+    """The immutable deployed package, if this mission is already deployed."""
+    if record.is_locked and record.package is not None:
+        return record.package
+    return None
+
+
+def _conflict(message: str) -> JSONResponse:
+    return JSONResponse({"error": "conflict", "detail": message}, status_code=409)
+
+
+def _locked(mission_id: str) -> JSONResponse:
+    return _conflict(
+        f"mission '{mission_id}' is deployed and locked; create a new Mission "
+        "Definition instead of editing a deployed package"
+    )
 
 
 def _bad_request(message: str) -> JSONResponse:

@@ -181,6 +181,109 @@ export interface MissionPackage {
   readonly execution: Record<string, unknown>;
 }
 
+/**
+ * Mission Review & Deployment (Phase 10D.6).
+ *
+ * Mission Review only visualizes the Mission Package, records operator
+ * confirmations and authorizes deployment. States after `deployed` belong to
+ * Mission Control and the Digital Twin and are shown for context only.
+ */
+export type DeploymentState =
+  | "draft"
+  | "ready_for_review"
+  | "approved"
+  | "deploying"
+  | "deployed"
+  | "executing"
+  | "completed"
+  | "archived";
+
+/** Ordered lifecycle used by the deployment status visualization. */
+export const DEPLOYMENT_STATES: readonly DeploymentState[] = [
+  "draft",
+  "ready_for_review",
+  "approved",
+  "deploying",
+  "deployed",
+  "executing",
+  "completed",
+  "archived",
+] as const;
+
+export const DEPLOYMENT_STATE_LABELS: Record<DeploymentState, string> = {
+  draft: "Draft",
+  ready_for_review: "Ready for Review",
+  approved: "Approved",
+  deploying: "Deploying",
+  deployed: "Deployed",
+  executing: "Executing",
+  completed: "Completed",
+  archived: "Archived",
+};
+
+/** States owned by Mission Control / the Digital Twin, not Mission Review. */
+export const RUNTIME_OWNED_STATES: readonly DeploymentState[] = [
+  "executing",
+  "completed",
+  "archived",
+];
+
+/** A single operator confirmation. Never alters Planning Core output. */
+export interface ChecklistItem {
+  readonly item_id: string;
+  readonly label: string;
+  readonly confirmed: boolean;
+  readonly required: boolean;
+}
+
+/** Review/deployment state of one Mission Definition (backend-owned). */
+export interface DeploymentRecord {
+  readonly mission_id: string;
+  readonly state: DeploymentState;
+  readonly checklist: readonly ChecklistItem[];
+  readonly checklist_complete: boolean;
+  /** Deployed definitions are immutable — create a new one to change anything. */
+  readonly locked: boolean;
+  /** The immutable package handed to the Digital Twin (present once deployed). */
+  readonly package: MissionPackage | null;
+  readonly definition_version: number | null;
+  readonly deployment_id: string | null;
+  readonly deployed_ms: number | null;
+  readonly updated_ms: number;
+}
+
+/** Everything the Mission Review workspace renders. */
+export interface MissionReview {
+  readonly mission: MissionDefinition;
+  readonly package: MissionPackage;
+  readonly deployment: DeploymentRecord;
+  /** False when no Digital Twin deployment interface is attached. */
+  readonly deployment_available: boolean;
+}
+
+/** Digital Twin acknowledgement of a deployed Mission Package. */
+export interface DeploymentReceipt {
+  readonly accepted: boolean;
+  readonly deployment_id: string;
+  readonly definition_id: string;
+  readonly deployed_ms: number;
+  readonly route_count: number;
+  readonly mission_status: string;
+}
+
+export interface DeploymentResult {
+  readonly deployment: DeploymentRecord;
+  readonly receipt: DeploymentReceipt;
+}
+
+/** The Mission Package currently deployed to the Digital Twin. */
+export interface TwinDeployment {
+  readonly deployed: boolean;
+  readonly deployment_id: string | null;
+  readonly deployed_ms: number | null;
+  readonly package: MissionPackage | null;
+}
+
 /** A tank slot advertised by a drone model in the inventory (read-only). */
 export interface FleetModelTank {
   readonly tank_id: string;
@@ -235,4 +338,12 @@ export const PIPELINE_ENDPOINTS = {
   MISSION_PACKAGE: (missionId: string) => `/api/missions/${missionId}/package`,
   /** Compute a Mission Package (inline definition or {mission_id}). */
   PLANNING_COMPUTE: "/api/planning/compute",
+  /** Mission Review payload: package + deployment record (10D.6). */
+  MISSION_REVIEW: (missionId: string) => `/api/missions/${missionId}/review`,
+  /** Operator checklist confirmations (10D.6). */
+  MISSION_CHECKLIST: (missionId: string) => `/api/missions/${missionId}/checklist`,
+  /** Submit the approved Mission Package to the Digital Twin (10D.6). */
+  MISSION_DEPLOY: (missionId: string) => `/api/missions/${missionId}/deploy`,
+  /** The Mission Package currently deployed to the Twin (Mission Control). */
+  TWIN_DEPLOYMENT: "/api/twin/deployment",
 } as const;
