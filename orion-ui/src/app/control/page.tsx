@@ -6,6 +6,7 @@ import { TelemetryPanel } from "@/components/mission-control/TelemetryPanel";
 import { MissionStatusPanel } from "@/components/mission-control/MissionStatusPanel";
 import { AlertFeed } from "@/components/mission-control/AlertFeed";
 import { IntentBar } from "@/components/mission-control/IntentBar";
+import { DeployedMissionBar } from "@/components/review/DeployedMissionBar";
 
 /**
  * Phase 10C.3 — Mission Control Dashboard
@@ -17,6 +18,9 @@ import { IntentBar } from "@/components/mission-control/IntentBar";
  * Data flows:
  *   Digital Twin → WebSocket → Stores → Components (read-only)
  *   Operator → Intent Bar → POST /api/intents → Backend → Hive
+ *
+ * Phase 10D.6 adds only the deployed-package strip: Mission Control receives
+ * the Mission Package handed to the Digital Twin. Everything else is unchanged.
  */
 export default function MissionControlPage() {
   return (
@@ -30,6 +34,9 @@ export default function MissionControlPage() {
 
         {/* Center: Map + bottom panels */}
         <div className="flex-1 flex flex-col min-w-0">
+          {/* Deployed Mission Package (renders only after a deployment) */}
+          <DeployedMissionBar />
+
           {/* Map */}
           <div className="flex-1 min-h-0 p-2">
             <MapView />

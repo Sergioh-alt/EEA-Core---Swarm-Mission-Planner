@@ -880,6 +880,14 @@ export default function MissionDesignerPage() {
               there — never in this interface.
             </p>
             {pkg && <PackageResult pkg={pkg} />}
+            {pkg && (
+              <Link
+                href={`/missions/${missionId}/review`}
+                className="mt-3 flex w-full items-center justify-center gap-1 rounded-md border border-neutral-700 px-3 py-1.5 text-xs text-blue-400 hover:bg-neutral-800"
+              >
+                Mission Review &amp; Deployment →
+              </Link>
+            )}
           </Section>
         </div>
       </div>

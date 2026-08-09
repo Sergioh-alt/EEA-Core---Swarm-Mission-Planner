@@ -112,6 +112,45 @@ never contacts the Digital Twin.
 5. **Save fleet.** Persists the enriched fleet into the Mission Definition via
    `PUT /api/missions/{id}`, ready for the Planning Core.
 
+## Mission Review & Deployment (10D.6)
+
+Open from the Mission Designer's **Mission Review & Deployment →** link (shown
+once a Mission Package exists) or the **Review** action on `/missions`
+(route `/missions/[missionId]/review`). This is the operational gateway between
+planning and execution: it verifies an already completed Mission Package,
+collects operator confirmation and authorizes deployment. It plans nothing.
+
+1. **Mission summary.** Mission, field, area, operation, drone/route count,
+   estimated duration, coverage, liquid usage, battery cycles, refills,
+   bottleneck, confidence, Go/No-Go, risk, weather and flight conditions —
+   every value read from the Mission Package.
+2. **Zones, products, fleet & resource consumption.** Selected/excluded zones,
+   configured products, and the Planning Core's per-drone battery, liquid,
+   refill and time figures.
+3. **Timeline, recommendations and validation.** Planning Core timeline
+   summary, operational notes, optimization suggestions, risks, and validation
+   warnings/errors verbatim.
+4. **Operational checklist.** Weather verified, area inspected, products
+   loaded, fleet prepared, batteries charged, mission parameters verified,
+   safety perimeter confirmed. Each toggle records operator confirmation via
+   `PUT /api/missions/{id}/checklist`; **Deploy stays disabled until every item
+   is confirmed**. The checklist never modifies Planning Core output.
+5. **Execution preview** (optional). Read-only drawing of the package's planned
+   routes, drone starting positions, coverage order and per-route sequence.
+   It starts nothing and creates no simulation state.
+6. **Deploy.** `POST /api/missions/{id}/deploy` submits the immutable Mission
+   Package to the Digital Twin — a transfer only: no routing, allocation,
+   rebalancing or timing changes, and execution does **not** start.
+7. **Lock.** After deployment the Mission Definition and its package are
+   immutable; `PUT`/`DELETE` on the mission return `409`. To change anything,
+   create a new Mission Definition.
+8. **Deployment status.** Draft → Ready for Review → Approved → Deploying →
+   Deployed; Executing/Completed/Archived belong to Mission Control and the
+   Digital Twin.
+9. **Mission Control handoff.** On success the UI navigates to `/control`,
+   where the deployed package is shown and execution is started by the operator
+   with the usual `START_MISSION` intent.
+
 ## Golden-path workflow
 
 1. **Connect.** Open `/control`. The header shows `Connected` when the WebSocket is
