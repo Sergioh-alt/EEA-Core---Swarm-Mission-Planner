@@ -317,6 +317,145 @@ export interface FleetInventory {
   readonly crop_types: readonly string[];
 }
 
+// ---------------------------------------------------------------------------
+// Mission Library & Scheduler (Phase 10D.7)
+// ---------------------------------------------------------------------------
+
+export type LibraryEntryStatus = "ready" | "archived";
+
+/** Projection of stored definition/package values, computed by the backend. */
+export interface LibraryEntrySummary {
+  readonly field_name: string;
+  readonly crop_type: string;
+  readonly location: string;
+  readonly operation_type: string;
+  readonly zone_count: number;
+  readonly products: readonly string[];
+  readonly fleet_count: number;
+  readonly priority: string;
+  readonly area_ha: number | null;
+  readonly route_count: number | null;
+  readonly go_no_go: string | null;
+  readonly estimated_duration: string | null;
+}
+
+/** A saved, reusable mission: a Mission Definition + its Mission Package. */
+export interface LibraryEntry {
+  readonly entry_id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly template: boolean;
+  readonly status: LibraryEntryStatus;
+  readonly source_mission_id: string;
+  readonly definition: MissionDefinition;
+  readonly definition_version: number;
+  readonly package: MissionPackage | null;
+  readonly package_definition_version: number | null;
+  readonly package_stale: boolean;
+  readonly version: number;
+  readonly created_ms: number;
+  readonly updated_ms: number;
+  readonly summary: LibraryEntrySummary;
+}
+
+export type Recurrence = "one_time" | "daily" | "weekly" | "custom";
+
+export const RECURRENCE_LABELS: Record<Recurrence, string> = {
+  one_time: "One-time",
+  daily: "Daily",
+  weekly: "Weekly",
+  custom: "Custom repeat",
+};
+
+/** The operator's explicit scheduling intent, plus its own occurrences. */
+export interface MissionSchedule {
+  readonly schedule_id: string;
+  readonly entry_id: string;
+  readonly label: string;
+  readonly notes: string;
+  readonly start_date: string;
+  readonly times: readonly string[];
+  readonly recurrence: Recurrence;
+  readonly weekdays: readonly number[];
+  readonly interval_days: number;
+  readonly enabled: boolean;
+  readonly last_triggered_ms: number | null;
+  readonly last_result: string;
+  readonly created_ms: number;
+  readonly updated_ms: number;
+  readonly next_occurrence_ms: number | null;
+  readonly upcoming_ms: readonly number[];
+}
+
+export type ExecutionStatus = "running" | "completed" | "interrupted";
+export type ExecutionTrigger = "manual" | "scheduled";
+
+/** Planning Core figures the execution was started with (never recomputed). */
+export interface ExecutionPlanned {
+  readonly coverage_pct: number | null;
+  readonly confidence_pct: number | null;
+  readonly go_no_go: string | null;
+  readonly duration_formatted: string | null;
+  readonly duration_min: number | null;
+  readonly total_liquid_l: number | null;
+  readonly total_battery_cycles: number | null;
+  readonly area_ha: number | null;
+}
+
+/** Digital Twin state mirrored into history; the runtime stays authoritative. */
+export interface ExecutionRuntime {
+  readonly status?: string;
+  readonly progress?: number | null;
+  readonly event_count?: number;
+  readonly last_event?: string;
+}
+
+/** One past or ongoing execution — history, never a template. */
+export interface ExecutionRecord {
+  readonly execution_id: string;
+  readonly entry_id: string;
+  readonly definition_id: string;
+  readonly mission_name: string;
+  readonly field_name: string;
+  readonly operation_type: string;
+  readonly products: readonly string[];
+  readonly drone_count: number;
+  readonly route_count: number;
+  readonly trigger: ExecutionTrigger;
+  readonly schedule_id: string | null;
+  readonly status: ExecutionStatus;
+  readonly planned: ExecutionPlanned;
+  readonly runtime: ExecutionRuntime;
+  readonly warnings: readonly string[];
+  readonly deployment_id: string | null;
+  readonly started_ms: number;
+  readonly ended_ms: number | null;
+  readonly duration_ms: number | null;
+}
+
+export interface ExecutionResult {
+  readonly execution: ExecutionRecord;
+  readonly receipt: DeploymentReceipt;
+}
+
+export interface DuplicateResult {
+  readonly mission: MissionDefinition;
+  readonly source_entry_id: string;
+}
+
+/** Fields an operator may edit on a schedule; recurrence is never inferred. */
+export interface ScheduleInput {
+  readonly entry_id: string;
+  readonly label?: string;
+  readonly notes?: string;
+  readonly start_date: string;
+  readonly times: readonly string[];
+  readonly recurrence: Recurrence;
+  readonly weekdays?: readonly number[];
+  readonly interval_days?: number;
+  readonly enabled?: boolean;
+}
+
 /** Mission Definition Pipeline REST endpoints (backend-owned, design-time). */
 export const PIPELINE_ENDPOINTS = {
   /** Available assets (drones, products, supported crops). */
@@ -346,4 +485,24 @@ export const PIPELINE_ENDPOINTS = {
   MISSION_DEPLOY: (missionId: string) => `/api/missions/${missionId}/deploy`,
   /** The Mission Package currently deployed to the Twin (Mission Control). */
   TWIN_DEPLOYMENT: "/api/twin/deployment",
+  /** Saved reusable missions (list / save). */
+  LIBRARY: "/api/library",
+  /** A single saved mission. */
+  LIBRARY_ENTRY: (entryId: string) => `/api/library/${entryId}`,
+  /** Re-run the Planning Core for a saved mission's source definition. */
+  LIBRARY_RESYNC: (entryId: string) => `/api/library/${entryId}/resync`,
+  /** Copy a saved mission into a new Mission Definition. */
+  LIBRARY_DUPLICATE: (entryId: string) => `/api/library/${entryId}/duplicate`,
+  /** Hand a saved Mission Package to the Digital Twin. */
+  LIBRARY_EXECUTE: (entryId: string) => `/api/library/${entryId}/execute`,
+  /** Operator schedules (list / create). */
+  SCHEDULES: "/api/schedules",
+  /** A single schedule. */
+  SCHEDULE: (scheduleId: string) => `/api/schedules/${scheduleId}`,
+  /** Enable or disable a schedule. */
+  SCHEDULE_ENABLED: (scheduleId: string) => `/api/schedules/${scheduleId}/enabled`,
+  /** Execution history (separate from saved missions). */
+  EXECUTIONS: "/api/executions",
+  /** A single execution history record. */
+  EXECUTION: (executionId: string) => `/api/executions/${executionId}`,
 } as const;
