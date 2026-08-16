@@ -740,20 +740,32 @@ class TestPhase10ABoundaryEnforcement:
                 )
 
     def test_no_ui_imports_mavlink(self):
-        """UI must not import MAVLink or simulation."""
-        ui_dir = "ui"
-        for filename in os.listdir(ui_dir):
-            if not filename.endswith(".py"):
-                continue
-            filepath = os.path.join(ui_dir, filename)
-            imports = self._get_imports(filepath)
-            for imp in imports:
-                assert "mavlink" not in imp.lower(), (
-                    f"UI {filepath} imports MAVLink: {imp}"
-                )
-                assert not imp.startswith("simulation."), (
-                    f"UI {filepath} imports simulation: {imp}"
-                )
+        """The Mission Control UI must not import MAVLink or the Simulation Core."""
+        ui_src = os.path.join("orion-ui", "src")
+        scanned = 0
+        for dirpath, _dirnames, filenames in os.walk(ui_src):
+            for filename in filenames:
+                if not filename.endswith((".ts", ".tsx")):
+                    continue
+                filepath = os.path.join(dirpath, filename)
+                with open(filepath, "r", encoding="utf-8") as f:
+                    lines = f.read().splitlines()
+                scanned += 1
+                for line in lines:
+                    stripped = line.strip()
+                    if not (
+                        stripped.startswith(("import ", "export "))
+                        or "require(" in stripped
+                    ):
+                        continue
+                    lowered = stripped.lower()
+                    assert "mavlink" not in lowered, (
+                        f"UI {filepath} imports MAVLink: {stripped}"
+                    )
+                    assert "simulation" not in lowered, (
+                        f"UI {filepath} imports the Simulation Core: {stripped}"
+                    )
+        assert scanned > 0, f"No UI sources found under {ui_src}"
 
     def test_flight_state_to_activity_mapping_complete(self):
         """All FlightStates map to DroneActivityState."""

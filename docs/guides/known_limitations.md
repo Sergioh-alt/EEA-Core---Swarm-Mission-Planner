@@ -1,8 +1,13 @@
 # ORIÓN Mission Control — Known Limitations
 
 These are intentional scope boundaries and demonstration-environment characteristics
-as of Phase 10C.5. None are defects; each is consistent with the fixed system
-architecture (visualization + intent submission only; Digital Twin as SSOT).
+as of Phase 10D.8 — the demonstration-ready integrated ORIÓN operational platform.
+None are defects; each is consistent with the fixed system architecture
+(visualization + intent submission only; Digital Twin as SSOT).
+
+The consolidated Phase 10D limitation list and the explicit Phase 11 deferrals live in
+[`../validation/phase_10d8_consolidation_validation.md`](../validation/phase_10d8_consolidation_validation.md).
+The items below remain accurate for the Mission Control runtime surface.
 
 ## Demonstration mission geometry
 - The mission follows a **fixed lawnmower coverage route** owned by the backend /

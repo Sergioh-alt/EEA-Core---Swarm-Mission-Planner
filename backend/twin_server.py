@@ -5,6 +5,7 @@ Thin, READ-ONLY transport that serializes and streams the Digital Twin
 (Single Source of Truth) to the ORIÓN UI.
 
 Endpoints (mirror orion-ui/src/contracts/api.ts exactly):
+    GET  /health          (launcher readiness probe; alias of /api/health)
     GET  /api/health
     GET  /api/twin/state
     GET  /api/twin/drone/{drone_id}
@@ -203,9 +204,25 @@ def create_app(
     # REST — read-only
     # ------------------------------------------------------------------
 
+    def _health_payload() -> JSONObject:
+        return {
+            "status": "ok",
+            "service": "orion-digital-twin-api",
+            "connections": manager.count,
+        }
+
+    @app.get("/health")
+    async def readiness() -> JSONResponse:
+        """Minimal readiness probe for launchers/orchestrators.
+
+        Answers exactly one question — is the API accepting requests — and
+        deliberately exposes no configuration, credentials or internals.
+        """
+        return JSONResponse(_health_payload())
+
     @app.get("/api/health")
     async def health() -> JSONResponse:
-        return JSONResponse({"status": "ok", "connections": manager.count})
+        return JSONResponse(_health_payload())
 
     @app.get("/api/twin/state")
     async def swarm_state() -> JSONResponse:

@@ -14,9 +14,20 @@ import { Lock } from "lucide-react";
 import { getPipelineClient } from "@/lib/pipelineClient";
 import type { TwinDeployment } from "@/contracts/mission";
 import { executionOf, recommendationOf, resourcesOf } from "@/lib/missionPackageView";
+import { useMissionStore } from "@/stores/missionStore";
+
+/** Runtime-state wording for the strip. The Digital Twin owns the state. */
+const RUNTIME_NOTE: Record<string, string> = {
+  IDLE: "Awaiting operator start — execution is controlled here.",
+  RUNNING: "Executing — execution is controlled here.",
+  PAUSED: "Paused by operator — execution is controlled here.",
+  COMPLETED: "Execution completed.",
+  ABORTED: "Execution aborted.",
+};
 
 export function DeployedMissionBar() {
   const [deployment, setDeployment] = useState<TwinDeployment | null>(null);
+  const missionStatus = useMissionStore((s) => s.status);
 
   useEffect(() => {
     let active = true;
@@ -55,7 +66,7 @@ export function DeployedMissionBar() {
       {resources.durationFormatted && <span>{resources.durationFormatted}</span>}
       {recommendation.goNoGo && <span>{recommendation.goNoGo}</span>}
       <span className="ml-auto text-blue-300/60">
-        Awaiting operator start — execution is controlled here.
+        {RUNTIME_NOTE[missionStatus] ?? RUNTIME_NOTE.IDLE}
       </span>
     </div>
   );

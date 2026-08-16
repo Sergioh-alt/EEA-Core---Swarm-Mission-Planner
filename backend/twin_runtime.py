@@ -340,6 +340,11 @@ class TwinRuntime:
             definition_id = self._deployed_package.get("definition_id")
             routes = self._deployed_package.get("routes")
             route_count = len(routes) if isinstance(routes, list) else 0
+            if isinstance(definition_id, str) and definition_id:
+                # The deployed package becomes the mission of record, so runtime
+                # state and the event log identify the mission the operator
+                # actually deployed instead of the standing demo mission.
+                self._mission_id = definition_id
             self._adopt_package_geometry(self._deployed_package)
             self._add_mission_event(
                 "DEPLOY",

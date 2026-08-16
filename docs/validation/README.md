@@ -31,13 +31,13 @@ Raw captured test output lives in [`logs/`](logs/).
 | 10D.3 | [`phase_10d3_field_acquisition_implementation.md`](phase_10d3_field_acquisition_implementation.md), [`phase_10d3_field_acquisition_validation.md`](phase_10d3_field_acquisition_validation.md) |
 | 10D.4 | [`phase_10d4_mission_designer_implementation.md`](phase_10d4_mission_designer_implementation.md) |
 | 10D.5 | [`phase_10d5_fleet_configuration_implementation.md`](phase_10d5_fleet_configuration_implementation.md), [`phase_10d5_fleet_configuration_validation.md`](phase_10d5_fleet_configuration_validation.md) |
+| 10D.6 | [`phase_10d6_mission_review_deployment_implementation.md`](phase_10d6_mission_review_deployment_implementation.md), [`phase_10d6_mission_review_deployment_validation.md`](phase_10d6_mission_review_deployment_validation.md) |
+| 10D.7 | [`phase_10d7_mission_library_scheduler_implementation.md`](phase_10d7_mission_library_scheduler_implementation.md) |
+| 10D.8 | [`phase_10d8_consolidation_validation.md`](phase_10d8_consolidation_validation.md) — final Phase 10D consolidation, architecture/legacy audit, startup & health contract, known limitations, Phase 11 deferrals |
 
 > Phase 10C.1 was a design-only phase; its documentation lives under
 > [`../architecture/ui/`](../architecture/ui/) and has no validation report by design.
 
-## Known follow-up (code, out of scope for this docs-only migration)
-
-`validation_e2e_phase10b.py` hardcodes the old output path
-`docs/validation_testing/phase_10b_e2e_validation_output.txt`. It should be
-updated to `docs/validation/logs/phase_10b_e2e_validation_output.txt` in a
-separate **code** PR (this migration does not modify source code).
+The former follow-up about `validation_e2e_phase10b.py` writing to the old
+`docs/validation_testing/` path was resolved in PR #41; output now lands in
+[`logs/`](logs/).
