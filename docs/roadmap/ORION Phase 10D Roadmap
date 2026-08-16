@@ -59,7 +59,7 @@ Mission Definition contract established in 10D.2 — they add no new execution p
 | 10D.4 | Mission Designer | crop zones, operation type, route preferences, manual editing, automatic planning request |
 | 10D.5 | Fleet Configuration | available drones, capabilities, tank/product information, operational constraints |
 | 10D.6 | Mission Review | validates generated plan, resource requirements, estimated execution, Digital Twin deployment readiness |
-| 10D.7 | Mission Library | mission storage, reusable templates, scheduling metadata, historical reference |
+| 10D.7 | **Mission Library & Scheduler** | mission storage, reusable templates, operator schedules (one-time/daily/weekly/custom, several times per day), execution preparation and handoff, execution history kept separate from templates |
 
 Mission execution is not a separately-built module: Mission Review (10D.6)
 deploys the Mission Package to the **existing** Mission Control, which remains

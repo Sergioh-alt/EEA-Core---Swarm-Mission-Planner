@@ -17,6 +17,9 @@ import {
   Radio,
   MapPinned,
   ClipboardList,
+  Library,
+  CalendarClock,
+  History,
 } from "lucide-react";
 
 interface NavItem {
@@ -60,6 +63,21 @@ const NAV_ITEMS: NavItem[] = [
     label: "Missions",
     href: "/missions",
     icon: <ClipboardList className="h-5 w-5" />,
+  },
+  {
+    label: "Library",
+    href: "/library",
+    icon: <Library className="h-5 w-5" />,
+  },
+  {
+    label: "Scheduler",
+    href: "/schedules",
+    icon: <CalendarClock className="h-5 w-5" />,
+  },
+  {
+    label: "History",
+    href: "/history",
+    icon: <History className="h-5 w-5" />,
   },
   {
     label: "Planning",

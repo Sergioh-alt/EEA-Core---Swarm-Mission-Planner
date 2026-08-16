@@ -11,13 +11,20 @@ import {
   PIPELINE_ENDPOINTS,
   type DeploymentRecord,
   type DeploymentResult,
+  type DuplicateResult,
+  type ExecutionRecord,
+  type ExecutionResult,
   type FieldDefinition,
   type FieldImage,
   type FieldImageSource,
   type FleetInventory,
+  type LibraryEntry,
+  type LibraryEntryStatus,
   type MissionDefinition,
   type MissionPackage,
   type MissionReview,
+  type MissionSchedule,
+  type ScheduleInput,
   type TwinDeployment,
 } from "@/contracts/mission";
 import { restBaseUrl } from "@/lib/config";
@@ -248,6 +255,144 @@ export class PipelineClient {
   /** The Mission Package currently deployed to the Twin (Mission Control). */
   async getTwinDeployment(): Promise<TwinDeployment> {
     return this.request<TwinDeployment>(PIPELINE_ENDPOINTS.TWIN_DEPLOYMENT);
+  }
+
+  // -- mission library (10D.7) -----------------------------------------------
+
+  async listLibrary(): Promise<LibraryEntry[]> {
+    const data = await this.request<{ entries: LibraryEntry[] }>(
+      PIPELINE_ENDPOINTS.LIBRARY
+    );
+    return data.entries ?? [];
+  }
+
+  async getLibraryEntry(entryId: string): Promise<LibraryEntry> {
+    return this.request<LibraryEntry>(PIPELINE_ENDPOINTS.LIBRARY_ENTRY(entryId));
+  }
+
+  /**
+   * Save a stored Mission Definition as a reusable mission. The backend keeps
+   * the definition and its Planning Core package together as one snapshot.
+   */
+  async saveToLibrary(
+    missionId: string,
+    meta?: { name?: string; description?: string }
+  ): Promise<LibraryEntry> {
+    return this.request<LibraryEntry>(PIPELINE_ENDPOINTS.LIBRARY, {
+      method: "POST",
+      body: JSON.stringify({ mission_id: missionId, ...meta }),
+    });
+  }
+
+  /** Rename / re-describe / archive a saved mission. Contract untouched. */
+  async updateLibraryEntry(
+    entryId: string,
+    meta: {
+      name?: string;
+      description?: string;
+      template?: boolean;
+      status?: LibraryEntryStatus;
+    }
+  ): Promise<LibraryEntry> {
+    return this.request<LibraryEntry>(PIPELINE_ENDPOINTS.LIBRARY_ENTRY(entryId), {
+      method: "PUT",
+      body: JSON.stringify(meta),
+    });
+  }
+
+  async deleteLibraryEntry(entryId: string): Promise<void> {
+    await this.request<{ deleted: string }>(
+      PIPELINE_ENDPOINTS.LIBRARY_ENTRY(entryId),
+      { method: "DELETE" }
+    );
+  }
+
+  /** Re-run the Planning Core for the saved mission's source definition. */
+  async resyncLibraryEntry(entryId: string): Promise<LibraryEntry> {
+    return this.request<LibraryEntry>(
+      PIPELINE_ENDPOINTS.LIBRARY_RESYNC(entryId),
+      { method: "POST" }
+    );
+  }
+
+  /** Copy a saved mission into a new, editable Mission Definition. */
+  async duplicateLibraryEntry(
+    entryId: string,
+    name?: string
+  ): Promise<DuplicateResult> {
+    return this.request<DuplicateResult>(
+      PIPELINE_ENDPOINTS.LIBRARY_DUPLICATE(entryId),
+      { method: "POST", body: JSON.stringify(name ? { name } : {}) }
+    );
+  }
+
+  /** Hand the saved Mission Package to the Digital Twin and start it. */
+  async executeLibraryEntry(
+    entryId: string,
+    startNow = true
+  ): Promise<ExecutionResult> {
+    return this.request<ExecutionResult>(
+      PIPELINE_ENDPOINTS.LIBRARY_EXECUTE(entryId),
+      { method: "POST", body: JSON.stringify({ start_now: startNow }) }
+    );
+  }
+
+  // -- scheduler (10D.7) -----------------------------------------------------
+
+  async listSchedules(): Promise<MissionSchedule[]> {
+    const data = await this.request<{ schedules: MissionSchedule[] }>(
+      PIPELINE_ENDPOINTS.SCHEDULES
+    );
+    return data.schedules ?? [];
+  }
+
+  async createSchedule(input: ScheduleInput): Promise<MissionSchedule> {
+    return this.request<MissionSchedule>(PIPELINE_ENDPOINTS.SCHEDULES, {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+  }
+
+  async updateSchedule(
+    scheduleId: string,
+    input: ScheduleInput
+  ): Promise<MissionSchedule> {
+    return this.request<MissionSchedule>(PIPELINE_ENDPOINTS.SCHEDULE(scheduleId), {
+      method: "PUT",
+      body: JSON.stringify(input),
+    });
+  }
+
+  async setScheduleEnabled(
+    scheduleId: string,
+    enabled: boolean
+  ): Promise<MissionSchedule> {
+    return this.request<MissionSchedule>(
+      PIPELINE_ENDPOINTS.SCHEDULE_ENABLED(scheduleId),
+      { method: "POST", body: JSON.stringify({ enabled }) }
+    );
+  }
+
+  async deleteSchedule(scheduleId: string): Promise<void> {
+    await this.request<{ deleted: string }>(
+      PIPELINE_ENDPOINTS.SCHEDULE(scheduleId),
+      { method: "DELETE" }
+    );
+  }
+
+  // -- execution history (10D.7) ---------------------------------------------
+
+  async listExecutions(): Promise<ExecutionRecord[]> {
+    const data = await this.request<{ executions: ExecutionRecord[] }>(
+      PIPELINE_ENDPOINTS.EXECUTIONS
+    );
+    return data.executions ?? [];
+  }
+
+  async getExecution(executionId: string): Promise<ExecutionRecord> {
+    return this.request<ExecutionRecord>(
+      PIPELINE_ENDPOINTS.EXECUTION(executionId)
+    );
   }
 }
 

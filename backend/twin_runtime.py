@@ -101,6 +101,50 @@ def _planned_route(drone_id: int) -> list[dict[str, float]]:
     return route
 
 
+#: Metres per degree of latitude, for placing a metric Mission Package on the
+#: map. This is a coordinate transform only — no route is created or altered.
+METERS_PER_DEG_LAT = 111320.0
+
+
+def _to_geo(x_m: float, y_m: float, cx: float, cy: float) -> dict[str, float]:
+    """Place a local metric point (Planning Core space) around FIELD_CENTER."""
+    lat = FIELD_CENTER["lat"] + (y_m - cy) / METERS_PER_DEG_LAT
+    lng = FIELD_CENTER["lng"] + (x_m - cx) / (
+        METERS_PER_DEG_LAT * max(0.1, math.cos(math.radians(lat)))
+    )
+    return {"lat": lat, "lng": lng}
+
+
+def _metric_points(value: object) -> list[tuple[float, float]]:
+    """Read [[x, y], ...] pairs out of a Mission Package geometry list."""
+    if not isinstance(value, list):
+        return []
+    points: list[tuple[float, float]] = []
+    for item in value:
+        if (
+            isinstance(item, list)
+            and len(item) >= 2
+            and isinstance(item[0], (int, float))
+            and isinstance(item[1], (int, float))
+        ):
+            points.append((float(item[0]), float(item[1])))
+    return points
+
+
+def _metric_waypoints(value: object) -> list[tuple[float, float]]:
+    """Read [{'x': .., 'y': ..}, ...] waypoints out of a package route."""
+    if not isinstance(value, list):
+        return []
+    points: list[tuple[float, float]] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        x, y = item.get("x"), item.get("y")
+        if isinstance(x, (int, float)) and isinstance(y, (int, float)):
+            points.append((float(x), float(y)))
+    return points
+
+
 def _route_metrics(route: list[dict[str, float]]) -> tuple[float, list[float]]:
     """Return (total_length, suffix_lengths) in degrees along the route.
 
@@ -200,6 +244,8 @@ class TwinRuntime:
         self._deployed_package: Optional[JSONObject] = None
         self._deployment_id: Optional[str] = None
         self._deployment_ms: Optional[int] = None
+        self._deployed_polygon: Optional[list[dict[str, float]]] = None
+        self._deployed_routes: dict[int, list[dict[str, float]]] = {}
 
     # -----------------------------------------------------------------
     # Failure configuration (available for on-demand injection)
@@ -294,6 +340,7 @@ class TwinRuntime:
             definition_id = self._deployed_package.get("definition_id")
             routes = self._deployed_package.get("routes")
             route_count = len(routes) if isinstance(routes, list) else 0
+            self._adopt_package_geometry(self._deployed_package)
             self._add_mission_event(
                 "DEPLOY",
                 f"Mission Package {definition_id} deployed to the Digital Twin "
@@ -321,6 +368,60 @@ class TwinRuntime:
                     else None
                 ),
             }
+
+    def _adopt_package_geometry(self, package: JSONObject) -> None:
+        """
+        Fly the deployed package's own routes instead of the demo route.
+
+        The Planning Core's field polygon and per-drone waypoints (local metric
+        space) are placed on the map around FIELD_CENTER. Their order, count and
+        shape are used exactly as delivered — nothing is planned, re-ordered,
+        re-timed or reassigned here; only the coordinate frame changes. Drones
+        without a route in the package keep the standing demo route, so the
+        existing hardcoded fallback remains intact.
+        """
+        execution = package.get("execution")
+        if not isinstance(execution, dict):
+            return
+        polygon_m = _metric_points(execution.get("field_polygon_m"))
+        raw_routes = execution.get("routes_m")
+        if len(polygon_m) < 3 or not isinstance(raw_routes, list):
+            return
+
+        cx = sum(p[0] for p in polygon_m) / len(polygon_m)
+        cy = sum(p[1] for p in polygon_m) / len(polygon_m)
+
+        geo_routes: list[list[dict[str, float]]] = []
+        for raw in raw_routes:
+            if not isinstance(raw, dict):
+                continue
+            waypoints = _metric_waypoints(raw.get("waypoints"))
+            if len(waypoints) >= 2:
+                geo_routes.append([_to_geo(x, y, cx, cy) for (x, y) in waypoints])
+        if not geo_routes:
+            return
+
+        self._deployed_polygon = [_to_geo(x, y, cx, cy) for (x, y) in polygon_m]
+        self._deployed_routes = {}
+        for index, did in enumerate(self._sim.drone_ids):
+            if index >= len(geo_routes):
+                break
+            self._deployed_routes[did] = geo_routes[index]
+            self._reset_drone_route(did, geo_routes[index])
+
+    def _reset_drone_route(
+        self, drone_id: int, route: list[dict[str, float]]
+    ) -> None:
+        total_len, suffix_len = _route_metrics(route)
+        self._drone_missions[drone_id] = _DroneMissionState(
+            route=route,
+            total_len=total_len,
+            suffix_len=suffix_len,
+            cur_lat=route[0]["lat"],
+            cur_lng=route[0]["lng"],
+            prev_lat=route[0]["lat"],
+            prev_lng=route[0]["lng"],
+        )
 
     def request_snapshot(self) -> str:
         with self._lock:
@@ -406,18 +507,24 @@ class TwinRuntime:
             # A comm-lost drone cannot receive commands; hold position.
             if not inj.get_drone_failure_state(did).link_available:
                 continue
-            target = ms.route[ms.index]
-            dlat = target["lat"] - ms.cur_lat
-            dlng = target["lng"] - ms.cur_lng
-            dist = math.hypot(dlat, dlng)
-            if dist <= CRUISE_STEP_DEG:
+            # Per-tick travel budget, so densely sampled package routes advance
+            # at the same ground speed as the sparse demo route.
+            budget = CRUISE_STEP_DEG
+            while budget > 0:
+                target = ms.route[ms.index]
+                dlat = target["lat"] - ms.cur_lat
+                dlng = target["lng"] - ms.cur_lng
+                dist = math.hypot(dlat, dlng)
+                if dist > budget:
+                    ratio = budget / dist
+                    ms.cur_lat += dlat * ratio
+                    ms.cur_lng += dlng * ratio
+                    break
                 ms.cur_lat, ms.cur_lng = target["lat"], target["lng"]
-                if ms.index < len(ms.route) - 1:
-                    ms.index += 1
-            else:
-                ratio = CRUISE_STEP_DEG / dist
-                ms.cur_lat += dlat * ratio
-                ms.cur_lng += dlng * ratio
+                budget -= dist
+                if ms.index >= len(ms.route) - 1:
+                    break
+                ms.index += 1
             self._goto(did, {"lat": ms.cur_lat, "lng": ms.cur_lng})
         if all(
             ms.index >= len(ms.route) - 1
@@ -631,13 +738,34 @@ class TwinRuntime:
             return serializers.serialize_drone_replay_timeline(tl)
 
     def mission_geometry(self) -> JSONObject:
-        return {
-            "field_center": FIELD_CENTER,
-            "field_polygon": _field_polygon(),
-            "planned_routes": {
-                str(did): _planned_route(did) for did in self._sim.drone_ids
-            },
-        }
+        """
+        Field polygon + planned routes for Mission Control.
+
+        A deployed Mission Package drives this; without one the standing
+        hardcoded demo geometry is returned unchanged.
+        """
+        with self._lock:
+            if self._deployed_polygon is not None and self._deployed_routes:
+                routes = {
+                    str(did): (
+                        self._deployed_routes[did]
+                        if did in self._deployed_routes
+                        else _planned_route(did)
+                    )
+                    for did in self._sim.drone_ids
+                }
+                return {
+                    "field_center": FIELD_CENTER,
+                    "field_polygon": list(self._deployed_polygon),
+                    "planned_routes": routes,
+                }
+            return {
+                "field_center": FIELD_CENTER,
+                "field_polygon": _field_polygon(),
+                "planned_routes": {
+                    str(did): _planned_route(did) for did in self._sim.drone_ids
+                },
+            }
 
     def get_mission_payload(self) -> JSONObject:
         with self._lock:

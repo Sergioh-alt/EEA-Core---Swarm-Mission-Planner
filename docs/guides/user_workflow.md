@@ -151,6 +151,48 @@ collects operator confirmation and authorizes deployment. It plans nothing.
    where the deployed package is shown and execution is started by the operator
    with the usual `START_MISSION` intent.
 
+## Mission Library & Scheduler (10D.7)
+
+Three routes, reached from the sidebar: **Library** (`/library`), **Scheduler**
+(`/schedules`) and **History** (`/history`). Saved missions and execution
+history are deliberately separate lists.
+
+1. **Save a mission.** On `/library`, pick a Mission Definition and *Save to
+   Library* (`POST /api/library`). The stored entry keeps the definition *and*
+   the Mission Package the Planning Core produced for it, so a saved mission
+   always runs exactly what was reviewed.
+2. **Browse and inspect.** The list shows status, template flag, field,
+   operation, drone/product counts, area, route count, Go/No-Go, estimated
+   duration and last update. `/library/[entryId]` shows the full definition,
+   operational parameters, execution readiness, Planning Core result,
+   resources, risks and routes — all read from the stored package.
+3. **Reuse.** *Use as template* (`POST /api/library/{id}/duplicate`) creates a
+   **new** Mission Definition (new id, version 1) and opens it in the Mission
+   Designer. The saved mission is never mutated by editing the copy.
+4. **Versioning.** Editing the source definition marks the entry
+   *Package outdated*; the stored package still executes unchanged until the
+   operator explicitly re-runs the Planning Core
+   (`POST /api/library/{id}/resync`), which replaces the snapshot and bumps the
+   entry version.
+5. **Schedule.** From the entry or `/schedules`, create a schedule: start date,
+   one or more times per day, and a repeat rule (one-time, daily, weekly with
+   weekdays, or custom every N days). Schedules reference the saved mission by
+   id. The Scheduler lists next and upcoming occurrences, enabled state and the
+   last run result; it never picks a better time, reallocates fleet, alters a
+   mission or resolves conflicts — conflicts are surfaced, not solved.
+6. **Execute now.** *Execute now* (`POST /api/library/{id}/execute`) hands the
+   stored Mission Package through the same Digital Twin deployment boundary
+   used in 10D.6, opens an execution record and starts the run, then the UI
+   navigates to Mission Control. A busy runtime is rejected with `409`.
+7. **Scheduled execution.** A backend loop dispatches only the occurrences the
+   operator configured, using the saved package, and records the result on the
+   schedule.
+8. **Execution history.** `/history` lists executions with trigger, status,
+   field, operation, products, drone/route counts, duration, planned coverage/
+   liquid/battery/area and mirrored runtime progress. Records close when the
+   Digital Twin reaches a terminal state. Saved missions stay reusable after
+   any number of executions.
+
 ## Golden-path workflow
 
 1. **Connect.** Open `/control`. The header shows `Connected` when the WebSocket is

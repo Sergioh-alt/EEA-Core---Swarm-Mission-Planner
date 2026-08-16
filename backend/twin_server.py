@@ -41,6 +41,11 @@ from backend.mission_pipeline.field_images import (
     FieldImageStore,
     create_default_image_store,
 )
+from backend.mission_pipeline.library_api import (
+    create_library_router,
+    dispatch_scheduled_missions,
+    refresh_open_executions,
+)
 from backend.mission_pipeline.persistence import (
     DefinitionStore,
     create_default_store,
@@ -52,6 +57,8 @@ logger = logging.getLogger("eea.backend.twin_server")
 
 # Broadcast rate: 2 Hz (within the 1–2 Hz spec).
 DEFAULT_TICK_INTERVAL_S = 0.5
+# How often due operator schedules are checked (Phase 10D.7).
+SCHEDULER_INTERVAL_S = 5.0
 
 
 class ConnectionManager:
@@ -120,6 +127,19 @@ def create_app(
     store = definition_store or create_default_store(_definition_db_from_env())
     images = image_store or create_default_image_store(_image_dir_from_env())
 
+    async def _scheduler_loop() -> None:
+        """
+        Run the occurrences the operator scheduled and mirror runtime state
+        into open execution-history records. Decides nothing itself.
+        """
+        while True:
+            await asyncio.sleep(SCHEDULER_INTERVAL_S)
+            try:
+                await asyncio.to_thread(dispatch_scheduled_missions, store, runtime)
+                await asyncio.to_thread(refresh_open_executions, store, runtime)
+            except Exception:  # pragma: no cover - the loop must survive
+                logger.exception("scheduler dispatch failed")
+
     async def _tick_loop() -> None:
         if autostart_mission:
             runtime.start_mission()
@@ -133,11 +153,15 @@ def create_app(
 
     @contextlib.asynccontextmanager
     async def _lifespan(_: FastAPI):
-        task = asyncio.create_task(_tick_loop()) if run_loop else None
+        tasks = (
+            [asyncio.create_task(_tick_loop()), asyncio.create_task(_scheduler_loop())]
+            if run_loop
+            else []
+        )
         try:
             yield
         finally:
-            if task is not None:
+            for task in tasks:
                 task.cancel()
                 with contextlib.suppress(asyncio.CancelledError):
                     await task
@@ -167,6 +191,13 @@ def create_app(
     # (Phase 10D.6) so an approved Mission Package has exactly one path into
     # execution; the pipeline itself imports no runtime module.
     app.include_router(create_pipeline_router(store, images, runtime))
+
+    # ------------------------------------------------------------------
+    # Mission Library & Scheduler (Phase 10D.7) — saved missions, operator
+    # schedules and execution history. The runtime is injected as the
+    # execution gateway; the library imports no runtime module.
+    # ------------------------------------------------------------------
+    app.include_router(create_library_router(store, runtime))
 
     # ------------------------------------------------------------------
     # REST — read-only

@@ -300,6 +300,15 @@ Consumes
 
 Mission Definitions
 
+Implementation note (10D.7)
+
+The library persists definition + package snapshots, execution-preparation
+requests and execution-history records through the existing `DefinitionStore`.
+Execution itself still happens in the Digital Twin: the library only hands an
+already-generated Mission Package to the deployment boundary and never plans,
+allocates or recomputes any value in it. `backend/mission_pipeline/library.py`
+imports no runtime module.
+
 ---
 
 # Mission Scheduler
@@ -333,6 +342,15 @@ Execution Requests
 Consumes
 
 Mission Templates
+
+Implementation note (10D.7)
+
+Recurrence expansion is arithmetic over stored operator intent; the dispatch
+loop lives at the composition root (`backend/twin_server.py`) so
+`backend/mission_pipeline/execution.py` depends only on an injected
+`MissionExecutionGateway` protocol, never on the Digital Twin runtime. Due
+occurrences are neither queued, retried nor rescheduled: a conflict is stored
+as the schedule's last result and surfaced to the operator.
 
 ---
 

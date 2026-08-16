@@ -271,6 +271,17 @@ Mission Library stores mission definitions.
 
 It never executes missions.
 
+**As implemented (10D.7).** A library entry is one immutable snapshot pairing a
+Mission Definition with the Mission Package the Planning Core produced for it
+(`definition_version` / `package_definition_version`). Editing the source
+definition marks the entry's package outdated but never rewrites it; only an
+explicit resync re-runs the Planning Core and replaces the snapshot. Duplicate
+creates a new Mission Definition (new id, version 1) and leaves the saved
+mission untouched. Reusable missions and **execution history** are separate
+record types and separate lists — an execution never mutates a template.
+Persistence uses the existing replaceable `DefinitionStore` (`library_entries`,
+`mission_schedules`, `mission_executions`).
+
 ---
 
 ## 6. Mission Scheduler
@@ -290,6 +301,17 @@ Responsibilities
 Scheduler submits execution requests.
 
 Scheduler never controls execution.
+
+**As implemented (10D.7).** A schedule stores explicit operator intent only:
+start date, one or more times per day, recurrence (one-time / daily / weekly by
+weekday / custom every N days) and an enabled flag, referencing a saved mission
+by id rather than copying its definition. Occurrence expansion is pure
+arithmetic over that intent. A dispatch loop at the composition root runs due
+occurrences by handing the entry's stored Mission Package to the Digital Twin
+through the same deployment boundary as 10D.6, then records the outcome on the
+schedule. It selects no time, alters no mission, reallocates nothing and
+resolves no conflict — conflicts (for example a busy runtime) are surfaced as
+the schedule's last result.
 
 ---
 
