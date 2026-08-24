@@ -629,6 +629,78 @@ def test_runtime_state_closes_the_history_record() -> None:
     assert record.runtime["last_event"] == "Mission coverage complete"
 
 
+def test_open_record_never_inherits_another_missions_outcome() -> None:
+    """A killed run must not be closed by whatever the runtime does next.
+
+    Phase 10D.8 recovery testing: after the backend was interrupted mid-run the
+    Digital Twin restarted on the standing demo mission, and the open history
+    record was closed as COMPLETED at 100% from that unrelated mission.
+    """
+    entry = LibraryEntry(
+        name="Morning Spray",
+        definition={"name": "Morning Spray"},
+        package={"definition_id": "mission_real", "routes": []},
+    )
+    record = execution_from_package(
+        entry, entry.package or {}, ExecutionTrigger.MANUAL
+    )
+    apply_runtime_state(
+        record,
+        {
+            "mission_id": "mission_real",
+            "status": "RUNNING",
+            "progress": 0.12,
+            "events": [],
+        },
+    )
+    assert record.status is ExecutionStatus.RUNNING
+
+    changed = apply_runtime_state(
+        record,
+        {
+            "mission_id": "mission-alpha-001",
+            "status": "COMPLETED",
+            "progress": 1.0,
+            "events": [{"message": "Mission coverage complete"}],
+        },
+    )
+
+    assert changed is True
+    assert record.status is ExecutionStatus.INTERRUPTED
+    assert record.ended_ms is not None
+    assert record.runtime["status"] == "INTERRUPTED"
+    assert record.runtime["progress"] == 0.12
+    assert "Mission coverage complete" not in str(record.runtime["last_event"])
+
+    # Closed records are left alone by later foreign runtime states.
+    assert (
+        apply_runtime_state(
+            record, {"mission_id": "mission-alpha-001", "status": "RUNNING"}
+        )
+        is False
+    )
+    assert record.status is ExecutionStatus.INTERRUPTED
+
+
+def test_deployed_but_unstarted_runtime_leaves_the_record_open() -> None:
+    """An idle runtime holding a deployed package is not "another mission"."""
+    entry = LibraryEntry(
+        name="Morning Spray",
+        definition={"name": "Morning Spray"},
+        package={"definition_id": "mission_real", "routes": []},
+    )
+    record = execution_from_package(
+        entry, entry.package or {}, ExecutionTrigger.MANUAL
+    )
+
+    apply_runtime_state(
+        record, {"mission_id": None, "status": "IDLE", "progress": 0.0, "events": []}
+    )
+
+    assert record.status is ExecutionStatus.RUNNING
+    assert record.ended_ms is None
+
+
 def test_execution_requires_a_gateway(tmp_path) -> None:
     from fastapi import FastAPI
 

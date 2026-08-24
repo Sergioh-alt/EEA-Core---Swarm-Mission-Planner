@@ -39,6 +39,10 @@ BACKEND_URL = f"http://localhost:{BACKEND_PORT}"
 READY_TIMEOUT_S = 60.0
 
 
+def log(message: str) -> None:
+    print(message, flush=True)
+
+
 def check_environment(need_ui: bool) -> None:
     try:
         import fastapi  # noqa: F401
@@ -53,7 +57,7 @@ def check_environment(need_ui: bool) -> None:
 
 
 def start_backend() -> subprocess.Popen[bytes]:
-    print(f"[orion] starting backend on {BACKEND_URL}")
+    log(f"[orion] starting backend on {BACKEND_URL}")
     return subprocess.Popen([sys.executable, "-m", "backend.run"], cwd=ROOT)
 
 
@@ -65,7 +69,7 @@ def wait_for_backend(proc: subprocess.Popen[bytes] | None) -> None:
         try:
             with urllib.request.urlopen(HEALTH_URL, timeout=2) as resp:
                 if resp.status == 200:
-                    print(f"[orion] backend READY ({HEALTH_URL})")
+                    log(f"[orion] backend READY ({HEALTH_URL})")
                     return
         except (urllib.error.URLError, OSError):
             pass
@@ -76,7 +80,7 @@ def wait_for_backend(proc: subprocess.Popen[bytes] | None) -> None:
 def start_frontend() -> subprocess.Popen[bytes]:
     env = dict(os.environ)
     env.setdefault("NEXT_PUBLIC_TWIN_API_URL", BACKEND_URL)
-    print(f"[orion] starting Mission Control UI (API {env['NEXT_PUBLIC_TWIN_API_URL']})")
+    log(f"[orion] starting Mission Control UI (API {env['NEXT_PUBLIC_TWIN_API_URL']})")
     return subprocess.Popen(["npm", "run", "dev"], cwd=UI_DIR, env=env)
 
 
@@ -103,7 +107,7 @@ def main() -> None:
             wait_for_backend(None)
         if args.target in ("all", "frontend"):
             procs.append(start_frontend())
-            print("[orion] ORION READY — Mission Control: http://localhost:3000")
+            log("[orion] ORION READY — Mission Control: http://localhost:3000")
         while procs:
             for proc in procs:
                 if proc.poll() is not None:

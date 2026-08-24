@@ -1,6 +1,7 @@
 "use client";
 
 import { useDroneStore } from "@/stores/droneStore";
+import { useLiveStale } from "@/hooks/useLiveStale";
 import { StatusDot } from "@/components/common/StatusDot";
 import { BatteryIndicator } from "@/components/common/BatteryIndicator";
 import { cn, formatAltitude, formatSpeed } from "@/lib/utils";
@@ -11,6 +12,7 @@ export function FleetPanel() {
   const drones = useDroneStore((s) => s.drones);
   const selectedDroneId = useDroneStore((s) => s.selectedDroneId);
   const selectDrone = useDroneStore((s) => s.selectDrone);
+  const stale = useLiveStale();
 
   return (
     <div className="flex flex-col h-full bg-neutral-950 border-r border-neutral-800">
@@ -18,8 +20,15 @@ export function FleetPanel() {
         <h2 className="text-xs font-semibold text-neutral-300 uppercase tracking-wider">
           Fleet Status
         </h2>
-        <p className="text-[10px] text-neutral-600 mt-0.5">
-          {drones.length} drone{drones.length !== 1 ? "s" : ""} active
+        <p
+          className={cn(
+            "text-[10px] mt-0.5",
+            stale ? "text-amber-400" : "text-neutral-600"
+          )}
+        >
+          {stale
+            ? `${drones.length} drone${drones.length !== 1 ? "s" : ""} — last reported telemetry, not live`
+            : `${drones.length} drone${drones.length !== 1 ? "s" : ""} active`}
         </p>
       </div>
 

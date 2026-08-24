@@ -15,6 +15,7 @@ import { getPipelineClient } from "@/lib/pipelineClient";
 import type { TwinDeployment } from "@/contracts/mission";
 import { executionOf, recommendationOf, resourcesOf } from "@/lib/missionPackageView";
 import { useMissionStore } from "@/stores/missionStore";
+import { useLiveStale } from "@/hooks/useLiveStale";
 
 /** Runtime-state wording for the strip. The Digital Twin owns the state. */
 const RUNTIME_NOTE: Record<string, string> = {
@@ -28,6 +29,7 @@ const RUNTIME_NOTE: Record<string, string> = {
 export function DeployedMissionBar() {
   const [deployment, setDeployment] = useState<TwinDeployment | null>(null);
   const missionStatus = useMissionStore((s) => s.status);
+  const stale = useLiveStale();
 
   useEffect(() => {
     let active = true;
@@ -65,8 +67,10 @@ export function DeployedMissionBar() {
       <span>{pkg.routes.length} routes</span>
       {resources.durationFormatted && <span>{resources.durationFormatted}</span>}
       {recommendation.goNoGo && <span>{recommendation.goNoGo}</span>}
-      <span className="ml-auto text-blue-300/60">
-        {RUNTIME_NOTE[missionStatus] ?? RUNTIME_NOTE.IDLE}
+      <span className={stale ? "ml-auto text-amber-400" : "ml-auto text-blue-300/60"}>
+        {stale
+          ? "Digital Twin unreachable — last reported state only."
+          : RUNTIME_NOTE[missionStatus] ?? RUNTIME_NOTE.IDLE}
       </span>
     </div>
   );

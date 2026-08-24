@@ -6,10 +6,10 @@ EXISTING core/ planning pipeline. This module contains NO planning, routing,
 optimization, or allocation algorithms of its own — it only:
 
     1. derives the core MissionProfile inputs from the operator's definition,
-    2. runs the same chain the Streamlit app already uses, and
+    2. runs the canonical core/ planning chain unchanged, and
     3. serializes the results into a transport-friendly Mission Package.
 
-Chain (identical to app.py):
+Chain:
     create_mission_profile -> analyze_environment -> plan_swarm -> plan_routes
     -> plan_resources -> evaluate_risks -> generate_recommendation
     -> generate_timeline

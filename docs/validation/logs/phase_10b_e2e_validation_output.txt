@@ -2,7 +2,7 @@
 ======================================================================
   PHASE 10B — END-TO-END DIGITAL TWIN PIPELINE VALIDATION
 ======================================================================
-Timestamp: 2026-08-16 17:43:50 UTC
+Timestamp: 2026-08-24 00:05:42 UTC
 
 ======================================================================
   1. START SIMULATION CORE (3 drones)
@@ -74,8 +74,8 @@ Timestamp: 2026-08-16 17:43:50 UTC
 ======================================================================
   Timeline ID: replay-000001
   Total frames: 4
-  Start ms: 2633412
-  End ms: 2633412
+  Start ms: 2909017
+  End ms: 2909017
   [PASS] Replay timeline has 4 frames
   [PASS] Timeline starts at snap1 timestamp
   [PASS] Timeline ends at snap4 timestamp
@@ -100,8 +100,8 @@ Timestamp: 2026-08-16 17:43:50 UTC
   [PASS] Drone 1: battery matches (90.0%)
   [PASS] Drone 2: battery matches (85.0%)
   [PASS] Drone 3: battery matches (80.0%)
-  Original state hash: 7233232127436957966
-  Restored state hash: 7233232127436957966
+  Original state hash: -3741194712474985636
+  Restored state hash: -3741194712474985636
   [PASS] Hash values are identical
 
 ======================================================================
@@ -111,7 +111,7 @@ Timestamp: 2026-08-16 17:43:50 UTC
   [PASS] GPS loss active
   [PASS] Link loss active
   [PASS] Wind disturbance active
-  Active failures: ['wind_disturbance', 'battery_degradation', 'link_loss', 'gps_loss']
+  Active failures: ['link_loss', 'gps_loss', 'wind_disturbance', 'battery_degradation']
 
 ======================================================================
   12. FAILURE PROPAGATION: Sim → ROS2 → Sync → Twin → Snap → Replay
