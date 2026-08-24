@@ -43,6 +43,7 @@ export function FleetPanel() {
               <FleetDroneCard
                 key={drone.drone_id}
                 drone={drone}
+                stale={stale}
                 isSelected={drone.drone_id === selectedDroneId}
                 onSelect={() =>
                   selectDrone(
@@ -62,11 +63,18 @@ export function FleetPanel() {
 
 interface FleetDroneCardProps {
   drone: DroneState;
+  /** The link to the Digital Twin is down: these readings are frozen. */
+  stale: boolean;
   isSelected: boolean;
   onSelect: () => void;
 }
 
-function FleetDroneCard({ drone, isSelected, onSelect }: FleetDroneCardProps) {
+function FleetDroneCard({
+  drone,
+  stale,
+  isSelected,
+  onSelect,
+}: FleetDroneCardProps) {
   const speed = Math.sqrt(
     drone.velocity.vx ** 2 + drone.velocity.vy ** 2 + drone.velocity.vz ** 2
   );
@@ -76,6 +84,7 @@ function FleetDroneCard({ drone, isSelected, onSelect }: FleetDroneCardProps) {
       onClick={onSelect}
       className={cn(
         "w-full rounded-md p-2.5 text-left transition-all",
+        stale && "opacity-60",
         isSelected
           ? "bg-blue-600/15 border border-blue-500/40 ring-1 ring-blue-500/20"
           : "bg-neutral-900/50 border border-neutral-800 hover:bg-neutral-800/80 hover:border-neutral-700"
@@ -99,6 +108,12 @@ function FleetDroneCard({ drone, isSelected, onSelect }: FleetDroneCardProps) {
           )}
         </div>
       </div>
+
+      {stale && (
+        <p className="mb-1.5 text-[9px] uppercase tracking-wider text-amber-400">
+          Last reported — not live
+        </p>
+      )}
 
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px]">
         <div className="flex items-center gap-1 text-neutral-500">
