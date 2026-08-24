@@ -109,13 +109,54 @@ documents the actual backend variables read by the code
    "Awaiting operator start"; it reflects the Digital Twin's runtime state
    (IDLE / RUNNING / PAUSED / COMPLETED / ABORTED).
 
+### Recovery correctness fixes (found by runtime validation)
+
+Runtime scenario D (see §5) failed on the first pass. Two defects were real
+correctness bugs and were fixed inside this consolidation.
+
+**D-1 — history inherited an unrelated mission's outcome.**
+What failed: a run killed at ~12 % was later shown in `/history` as
+`completed`, 100 %, "Mission coverage complete".
+Why: `apply_runtime_state()` mirrored whatever the runtime reported into the
+most recent open record. After a backend restart the Digital Twin has no
+deployment and autostarts the standing demo mission, whose COMPLETED state
+closed the unrelated open record.
+Change: `apply_runtime_state()` compares the runtime payload's `mission_id`
+with the record's own `definition_id` (`_runtime_runs_other_mission()`). When
+the runtime reports a *different* mission, an open record is closed as
+`interrupted` with its last observed progress preserved; a runtime with no
+active mission (`mission_id: null`, e.g. a deployed-but-unstarted package) is
+explicitly not "another mission", so those records stay open. No decision logic
+was added: history still only mirrors the runtime, and only from its own
+mission.
+Validated: `tests/test_mission_library.py::test_open_record_never_inherits_another_missions_outcome`
+and `::test_deployed_but_unstarted_runtime_leaves_the_record_open`, plus three
+browser reproductions where the killed run was recorded `interrupted` at
+0.2771 / 0.2802 / 0.2984 progress.
+
+**D-2 — Mission Control presented frozen telemetry as live.**
+What failed: with the backend killed the UI showed `Disconnected` while still
+displaying a green RUNNING mission, a ticking elapsed clock, "% complete" and
+drones at 16.7 m/s.
+Why: every runtime panel read the last frame in the stores with no notion of
+the link being down.
+Change: new `orion-ui/src/hooks/useLiveStale.ts` (true when LIVE mode and the
+connection status is DISCONNECTED/ERROR) is consumed by `TopBar`,
+`MissionStatusPanel`, `DeployedMissionBar` and `FleetPanel`: the status badges
+become `NO LIVE DATA`, figures are labelled "(last known)" / "not live", the
+elapsed clock is hidden and drone cards are dimmed. The UI stops claiming
+freshness it cannot verify; it does not infer or invent state.
+Validated: recorded browser run — one full-screen capture shows no live claim
+anywhere while disconnected, values frozen after 14 s, and every marker clears
+automatically on reconnect with no page reload.
+
 ---
 
 ## 4. Automated validation — exact results
 
 | Suite | Command | Result |
 | --- | --- | --- |
-| Python regression | `python -m pytest -q` | **940 passed, 0 failed** in 4.09 s |
+| Python regression | `python -m pytest -q` | **942 passed, 0 failed** in 6.36 s |
 | TypeScript | `npx tsc --noEmit` | **0 errors** |
 | ESLint | `npx next lint` | **No ESLint warnings or errors** |
 | Next.js production build | `npm run build` | **Success — 20/20 routes** compiled |
@@ -123,12 +164,14 @@ documents the actual backend variables read by the code
 
 Test-count delta versus Phase 10D.7 (939):
 `+3` readiness-contract tests, `+1` retargeted HAL entrypoint test (replacing 1),
-`−2` removed vacuous duplicates, `+0` net elsewhere → **940**.
+`−2` removed vacuous duplicates, `+2` recovery regression tests → **942**.
 
 Newly added tests:
 - `tests/test_twin_api.py::test_readiness_endpoint`
 - `tests/test_twin_api.py::test_readiness_matches_api_health`
 - `tests/test_twin_api.py::test_readiness_exposes_nothing_sensitive`
+- `tests/test_mission_library.py::test_open_record_never_inherits_another_missions_outcome`
+- `tests/test_mission_library.py::test_deployed_but_unstarted_runtime_leaves_the_record_open`
 
 Not performed in this phase:
 - No CI pipeline is configured in this repository, so no suite runs on GitHub.
@@ -138,7 +181,64 @@ Not performed in this phase:
 
 ---
 
-## 5. Known limitations (Phase 10D)
+## 5. Runtime end-to-end validation (browser, real stack)
+
+Executed against the real stack started with `python scripts/start_orion.py`
+(FastAPI `:8000` + Next.js `:3000`, `NEXT_PUBLIC_TWIN_API_URL=http://localhost:8000`),
+driving the UI in a browser. Recorded.
+
+| Scenario | Result |
+| --- | --- |
+| **A** — Field → Preparation → Mission Designer → Mission Definition → Planning Core → Mission Package | **PASS** |
+| **B** — Mission Library → package review → deployment to the Digital Twin | **PASS** |
+| **C** — Live execution (IDLE → RUNNING → PAUSED → RUNNING → COMPLETED) | **PASS** |
+| **D** — Recovery (backend interruption and restart) | **PASS** after the fixes in §3; deployment persistence **DEFERRED TO PHASE 11** |
+| **E** — Replay + Analytics | **PASS** |
+
+A — new field created, image uploaded, boundary drawn, zone and exclusion added,
+obstacle created and deleted, saved and reloaded from the backend, mission
+created, operation/product/parameters/fleet configured, completeness gating
+observed blocking submit, Mission Package generated by the Planning Core.
+
+B — mission saved and listed in the Library, reopened, package reviewed with the
+non-blocking `grapes` advisory visible alongside `Definition valid: yes`,
+deployed to the Digital Twin, which adopted the real `definition_id`. Templates
+remained unmodified by execution.
+
+C — operator START moved the Twin IDLE → RUNNING; drone position, route,
+progress, battery, speed and altitude all traced to Twin payloads (no
+UI-computed values); PAUSE → PAUSED, RESUME → RUNNING, final state COMPLETED,
+with a matching history record.
+
+D — mission killed mid-flight with `pkill -f backend.run`: the UI degraded to
+`Disconnected` and labelled every runtime figure as last-known (no live claim
+anywhere on screen, values frozen on re-check); the backend was restarted with
+the launcher, the WebSocket reconnected without a page reload and every stale
+marker cleared; the interrupted execution was recorded `interrupted` with its
+real progress (~28 %), never `completed`/100 %, reproduced three times.
+Remaining gap, deferred: the Twin does not persist the deployed Mission Package
+across a restart (`/api/twin/deployment` → `deployed:false`) and autostarts the
+standing demo mission, so after a restart the deployed strip and the mission
+panel identify different missions.
+
+E — replay of an executed mission loaded and navigated frame by frame,
+confirmed read-only against live state before and after, and Analytics figures
+matched the runtime snapshots and duration of the simulated run.
+
+### Startup protocol verification
+
+| Mode | Observed |
+| --- | --- |
+| `python scripts/start_orion.py backend` | `starting backend on http://localhost:8000` → `backend READY (http://127.0.0.1:8000/health)`; the UI's socket reconnects to it |
+| `python scripts/start_orion.py all` | backend → `/health` gate → `starting Mission Control UI (API http://localhost:8000)` → `ORION READY`, UI connects |
+| `python scripts/start_orion.py frontend` | waits on the `/health` gate, then starts **only** Next.js on `:3000`, leaving the running backend untouched; UI shows `Connected` (without a backend it correctly waits and fails after 60 s) |
+
+`GET /health` and `GET /api/health` both return
+`{"status":"ok","service":"orion-digital-twin-api","connections":N}`.
+
+---
+
+## 6. Known limitations (Phase 10D)
 
 - Execution is simulated end to end: the Digital Twin drives the Simulation
   Core, not physical aircraft. No PX4/MAVLink hardware link is exercised.
@@ -153,10 +253,17 @@ Not performed in this phase:
 - Weather, regulatory validation, digital signatures, operator permissions and
   biodiversity alerts are foundation-only extension points in Mission Review.
 - No authentication or authorization layer exists on the API.
+- The Digital Twin holds the deployed Mission Package in process memory only: a
+  backend restart loses it and the Twin resumes its standing demo mission.
+- The launcher does not detect an already-running UI; a second instance takes
+  `:3001` and shares `orion-ui/.next`, which can corrupt the first dev server.
+  It deliberately stays a development launcher — no supervision or restart logic.
+- The Twin adopts the deployed package's `definition_id` and geometry but not
+  its fleet size, so it always simulates its configured drone count.
 
 ---
 
-## 6. Explicit Phase 11 deferrals
+## 7. Explicit Phase 11 deferrals
 
 The following were identified during this consolidation and are **deliberately
 not** addressed here:
@@ -168,3 +275,9 @@ not** addressed here:
 - CI pipeline configuration for this repository.
 - Enterprise Mission Review extensions (weather, regulatory, signatures).
 - Multi-farm / multi-operator management.
+- Persisting the deployed Mission Package across backend restarts (durable
+  runtime deployment state and reconciliation on startup) — this is new runtime
+  capability, not a consolidation fix, and it is the only remaining gap behind
+  scenario D's post-restart identity mismatch.
+- Honouring the deployed package's fleet size in the Digital Twin's simulated
+  drone count.

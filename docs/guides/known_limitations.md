@@ -53,3 +53,21 @@ The items below remain accurate for the Mission Control runtime surface.
 - The demonstration runs 3 drones. The architecture and rendering were designed with
   larger fleets in mind (see `docs/architecture/ui/phase_10c1_scalability_strategy.md`),
   but 200+ drone scale has not been load-tested in this phase.
+
+## Runtime deployment state across restarts
+- The Digital Twin holds the deployed Mission Package in process memory. Restarting
+  the backend loses it (`GET /api/twin/deployment` → `deployed:false`) and the Twin
+  resumes its standing demo mission, so after a restart Mission Control's deployed
+  strip and mission panel can identify different missions. Durable deployment state
+  is deferred to Phase 11.
+- While the WebSocket is down, Mission Control keeps the last frame it received but
+  labels it explicitly (`NO LIVE DATA`, "last known", dimmed drone cards) rather than
+  presenting it as live telemetry; markers clear automatically on reconnect.
+- An execution whose mission the runtime stops reporting is closed as `interrupted`
+  with its last observed progress. It is never completed by another mission's outcome.
+
+## Development launcher
+- `scripts/start_orion.py` is a development/demonstration launcher only: no
+  supervision, no restart logic, no application decisions. It does not detect an
+  already-running UI — a second instance takes `:3001` and shares `orion-ui/.next`,
+  which can corrupt the first dev server. Run one instance at a time.
