@@ -314,7 +314,6 @@ Validation includes:
 * Python
 * FastAPI
 * WebSocket
-* Streamlit
 
 ## Frontend
 
@@ -373,15 +372,9 @@ npm install
 
 cd ..
 
-# Run backend
+# Start ORIÓN (backend, health check, then Mission Control UI)
 
-python app.py
-
-# Run Mission Control
-
-cd orion-ui
-
-npm run dev
+python scripts/start_orion.py
 ```
 
 Mission Control:
@@ -389,6 +382,46 @@ Mission Control:
 ```
 http://localhost:3000
 ```
+
+## Startup protocol
+
+```
+Start ORION
+  -> Environment / dependency check
+  -> Start Backend            (python -m backend.run)
+  -> Backend health check     (GET http://localhost:8000/health)
+  -> Backend READY
+  -> Start Next.js UI         (npm run dev in orion-ui)
+  -> Frontend connects to Backend
+  -> ORION READY
+```
+
+`scripts/start_orion.py` performs exactly those steps and nothing more.
+Each part can also be started on its own:
+
+```bash
+# Backend only (Digital Twin API on :8000)
+python -m backend.run
+# or: python scripts/start_orion.py backend
+
+# Mission Control UI only (expects a backend already running)
+cd orion-ui
+NEXT_PUBLIC_TWIN_API_URL=http://localhost:8000 npm run dev
+# or, from the repo root: python scripts/start_orion.py frontend
+```
+
+Configuration lives in two places: `.env.example` (backend / Digital Twin API)
+and `orion-ui/.env.example` (Mission Control UI). Copy each to `.env` as needed.
+
+## Health / readiness contract
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /health` | Canonical readiness probe used by the launcher and container healthcheck |
+| `GET /api/health` | Same payload, kept for the existing UI API surface |
+
+Both return `{"status": "ok", "service": "orion-digital-twin-api", "connections": <n>}`.
+The response is deliberately minimal and exposes no configuration or secrets.
 
 ---
 

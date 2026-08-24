@@ -2,8 +2,8 @@
 Phase 4 — UI Geometry Input Tests
 
 Tests for polygon presets, field mode selection, and UI helper functions.
-Note: Streamlit rendering cannot be tested in pytest; these tests validate
-the data layer that feeds the UI.
+Note: UI rendering is not exercised here; these tests validate the data
+layer that feeds the UI.
 """
 
 from core.geometry import FieldGeometry

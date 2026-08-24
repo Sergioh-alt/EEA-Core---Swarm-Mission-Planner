@@ -533,7 +533,27 @@ def apply_runtime_state(
 
     Returns True when the record changed. The runtime remains the source of
     truth: this only mirrors ``status``/``progress``/events into history.
+
+    An open record is only ever updated from the runtime mission it belongs to.
+    Once the Digital Twin identifies itself with a different mission, this
+    execution can no longer reach an outcome of its own, so it is closed as
+    interrupted instead of inheriting the other mission's progress.
     """
+    if _runtime_runs_other_mission(record, mission_payload):
+        if record.status is not ExecutionStatus.RUNNING:
+            return False
+        record.status = ExecutionStatus.INTERRUPTED
+        record.ended_ms = int(time.time() * 1000)
+        record.runtime = {
+            **record.runtime,
+            "status": "INTERRUPTED",
+            "last_event": (
+                "The Digital Twin stopped reporting this mission before it "
+                "finished"
+            ),
+        }
+        return True
+
     status = _as_str(mission_payload.get("status"), "").upper()
     progress = _as_opt_float(mission_payload.get("progress"))
     events = _as_list(mission_payload.get("events"))
@@ -563,6 +583,22 @@ def apply_runtime_state(
 # ---------------------------------------------------------------------------
 # Typed coercion helpers (no Any / getattr)
 # ---------------------------------------------------------------------------
+
+
+def _runtime_runs_other_mission(
+    record: ExecutionRecord, mission_payload: JSONObject
+) -> bool:
+    """
+    True when the runtime reports a mission that is not this execution's.
+
+    A runtime with no active mission (``mission_id`` absent while idle) is not
+    "another mission": a deployed package legitimately waits there for the
+    operator's start intent.
+    """
+    runtime_mission_id = _as_opt_str(mission_payload.get("mission_id"))
+    if not record.definition_id or runtime_mission_id is None:
+        return False
+    return runtime_mission_id != record.definition_id
 
 
 def _status_from(value: JSONValue) -> EntryStatus:

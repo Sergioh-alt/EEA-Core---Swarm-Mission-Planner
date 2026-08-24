@@ -1,6 +1,7 @@
 "use client";
 
 import { useDroneStore } from "@/stores/droneStore";
+import { useLiveStale } from "@/hooks/useLiveStale";
 import { StatusDot } from "@/components/common/StatusDot";
 import { BatteryIndicator } from "@/components/common/BatteryIndicator";
 import { cn, formatAltitude, formatSpeed } from "@/lib/utils";
@@ -11,6 +12,7 @@ export function FleetPanel() {
   const drones = useDroneStore((s) => s.drones);
   const selectedDroneId = useDroneStore((s) => s.selectedDroneId);
   const selectDrone = useDroneStore((s) => s.selectDrone);
+  const stale = useLiveStale();
 
   return (
     <div className="flex flex-col h-full bg-neutral-950 border-r border-neutral-800">
@@ -18,8 +20,15 @@ export function FleetPanel() {
         <h2 className="text-xs font-semibold text-neutral-300 uppercase tracking-wider">
           Fleet Status
         </h2>
-        <p className="text-[10px] text-neutral-600 mt-0.5">
-          {drones.length} drone{drones.length !== 1 ? "s" : ""} active
+        <p
+          className={cn(
+            "text-[10px] mt-0.5",
+            stale ? "text-amber-400" : "text-neutral-600"
+          )}
+        >
+          {stale
+            ? `${drones.length} drone${drones.length !== 1 ? "s" : ""} — last reported telemetry, not live`
+            : `${drones.length} drone${drones.length !== 1 ? "s" : ""} active`}
         </p>
       </div>
 
@@ -34,6 +43,7 @@ export function FleetPanel() {
               <FleetDroneCard
                 key={drone.drone_id}
                 drone={drone}
+                stale={stale}
                 isSelected={drone.drone_id === selectedDroneId}
                 onSelect={() =>
                   selectDrone(
@@ -53,11 +63,18 @@ export function FleetPanel() {
 
 interface FleetDroneCardProps {
   drone: DroneState;
+  /** The link to the Digital Twin is down: these readings are frozen. */
+  stale: boolean;
   isSelected: boolean;
   onSelect: () => void;
 }
 
-function FleetDroneCard({ drone, isSelected, onSelect }: FleetDroneCardProps) {
+function FleetDroneCard({
+  drone,
+  stale,
+  isSelected,
+  onSelect,
+}: FleetDroneCardProps) {
   const speed = Math.sqrt(
     drone.velocity.vx ** 2 + drone.velocity.vy ** 2 + drone.velocity.vz ** 2
   );
@@ -67,6 +84,7 @@ function FleetDroneCard({ drone, isSelected, onSelect }: FleetDroneCardProps) {
       onClick={onSelect}
       className={cn(
         "w-full rounded-md p-2.5 text-left transition-all",
+        stale && "opacity-60",
         isSelected
           ? "bg-blue-600/15 border border-blue-500/40 ring-1 ring-blue-500/20"
           : "bg-neutral-900/50 border border-neutral-800 hover:bg-neutral-800/80 hover:border-neutral-700"
@@ -90,6 +108,12 @@ function FleetDroneCard({ drone, isSelected, onSelect }: FleetDroneCardProps) {
           )}
         </div>
       </div>
+
+      {stale && (
+        <p className="mb-1.5 text-[9px] uppercase tracking-wider text-amber-400">
+          Last reported — not live
+        </p>
+      )}
 
       <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px]">
         <div className="flex items-center gap-1 text-neutral-500">

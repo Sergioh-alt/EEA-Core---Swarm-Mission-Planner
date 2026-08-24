@@ -2,6 +2,7 @@
 
 import { useMissionStore, type MissionEvent } from "@/stores/missionStore";
 import { useSwarmStore } from "@/stores/swarmStore";
+import { useLiveStale } from "@/hooks/useLiveStale";
 import { MissionStatusBadge } from "@/components/common/MissionStatusBadge";
 import { cn, formatTimestamp, formatDuration } from "@/lib/utils";
 import { MissionStatus } from "@/contracts/types";
@@ -24,6 +25,7 @@ export function MissionStatusPanel() {
   const startTime = useMissionStore((s) => s.startTime);
   const events = useMissionStore((s) => s.events);
   const swarmState = useSwarmStore((s) => s.swarmState);
+  const stale = useLiveStale();
 
   const elapsed = startTime ? Date.now() - startTime : 0;
 
@@ -33,15 +35,32 @@ export function MissionStatusPanel() {
         <h2 className="text-xs font-semibold text-neutral-300 uppercase tracking-wider">
           Mission
         </h2>
-        <MissionStatusBadge status={status} />
+        {stale ? (
+          <span
+            data-testid="mission-status-stale"
+            className="inline-flex items-center rounded-md border border-amber-700 bg-amber-900/40 px-2 py-0.5 text-xs font-medium text-amber-300"
+          >
+            NO LIVE DATA
+          </span>
+        ) : (
+          <MissionStatusBadge status={status} />
+        )}
       </div>
+
+      {stale && (
+        <p className="px-3 py-1.5 border-b border-neutral-800/50 text-[10px] text-amber-400">
+          Digital Twin unreachable — showing the last state it reported
+          {status !== MissionStatus.IDLE ? ` (${status})` : ""}. Values below are
+          not live.
+        </p>
+      )}
 
       <div className="px-3 py-2 border-b border-neutral-800/50">
         <div className="flex items-center justify-between text-[10px] mb-1.5">
           <span className="text-neutral-500">
             {missionId || "No active mission"}
           </span>
-          {startTime && (
+          {startTime && !stale && (
             <span className="flex items-center gap-1 text-neutral-500">
               <Clock className="h-2.5 w-2.5" />
               {formatDuration(elapsed)}
@@ -53,7 +72,9 @@ export function MissionStatusPanel() {
           <div
             className={cn(
               "absolute inset-y-0 left-0 rounded-full transition-all duration-500",
-              status === MissionStatus.RUNNING
+              stale
+                ? "bg-neutral-700"
+                : status === MissionStatus.RUNNING
                 ? "bg-gradient-to-r from-blue-600 to-cyan-500"
                 : status === MissionStatus.COMPLETED
                   ? "bg-green-500"
@@ -65,7 +86,9 @@ export function MissionStatusPanel() {
           />
         </div>
         <div className="flex justify-between mt-1 text-[9px] text-neutral-600">
-          <span>{Math.round(progress * 100)}% complete</span>
+          <span>
+            {Math.round(progress * 100)}%{stale ? " (last known)" : " complete"}
+          </span>
           <span>
             {swarmState
               ? `${swarmState.active_drones}/${swarmState.total_drones} drones`

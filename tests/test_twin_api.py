@@ -68,6 +68,28 @@ def test_health(client: TestClient) -> None:
     assert r.json()["status"] == "ok"
 
 
+def test_readiness_endpoint(client: TestClient) -> None:
+    """`GET /health` is the canonical readiness probe for launchers."""
+    r = client.get("/health")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "ok"
+    assert body["service"] == "orion-digital-twin-api"
+    assert isinstance(body["connections"], int)
+
+
+def test_readiness_matches_api_health(client: TestClient) -> None:
+    """Both readiness paths report the same minimal payload."""
+    assert client.get("/health").json() == client.get("/api/health").json()
+
+
+def test_readiness_exposes_nothing_sensitive(client: TestClient) -> None:
+    """The probe stays minimal — no config, paths, or credentials."""
+    assert set(client.get("/health").json()) == {
+        "status", "service", "connections",
+    }
+
+
 def test_swarm_state(client: TestClient) -> None:
     r = client.get("/api/twin/state")
     assert r.status_code == 200

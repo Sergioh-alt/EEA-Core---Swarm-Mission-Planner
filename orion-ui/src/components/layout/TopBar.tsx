@@ -5,21 +5,38 @@ import { ConnectionBadge } from "@/components/common/ConnectionBadge";
 import { MissionStatusBadge } from "@/components/common/MissionStatusBadge";
 import { useSwarmStore } from "@/stores/swarmStore";
 import { useAlertStore } from "@/stores/alertStore";
+import { useLiveStale } from "@/hooks/useLiveStale";
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 
 export function TopBar() {
   const swarmState = useSwarmStore((s) => s.swarmState);
   const unreadCount = useAlertStore((s) => s.unreadCount);
+  const stale = useLiveStale();
 
   return (
     <header className="flex h-12 items-center justify-between border-b border-neutral-800 bg-neutral-950 px-4">
       <div className="flex items-center gap-4">
         {swarmState && (
           <>
-            <MissionStatusBadge status={swarmState.mission_status} />
-            <span className="text-xs text-neutral-500">
-              {swarmState.active_drones}/{swarmState.total_drones} active
+            {stale ? (
+              <span
+                data-testid="topbar-status-stale"
+                className="inline-flex items-center rounded-md border border-amber-700 bg-amber-900/40 px-2 py-0.5 text-xs font-medium text-amber-300"
+              >
+                NO LIVE DATA
+              </span>
+            ) : (
+              <MissionStatusBadge status={swarmState.mission_status} />
+            )}
+            <span
+              className={cn(
+                "text-xs",
+                stale ? "text-amber-400" : "text-neutral-500"
+              )}
+            >
+              {swarmState.active_drones}/{swarmState.total_drones}
+              {stale ? " (last known)" : " active"}
             </span>
           </>
         )}

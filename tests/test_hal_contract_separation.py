@@ -53,6 +53,34 @@ from core.hal_safety import (
     SafetyCommandRelay,
 )
 
+UI_SRC_DIR = os.path.join("orion-ui", "src")
+UI_SOURCE_SUFFIXES = (".ts", ".tsx")
+
+
+def ui_import_lines() -> list[tuple[str, str]]:
+    """
+    (path, line) for every import/export statement in the Mission Control UI.
+
+    Only module-resolution statements are scanned: prose in comments and docs
+    legitimately names the layers the UI is forbidden to reach.
+    """
+    lines: list[tuple[str, str]] = []
+    scanned = 0
+    for dirpath, _dirnames, filenames in os.walk(UI_SRC_DIR):
+        for filename in filenames:
+            if not filename.endswith(UI_SOURCE_SUFFIXES):
+                continue
+            path = os.path.join(dirpath, filename)
+            with open(path, "r", encoding="utf-8") as f:
+                source = f.read()
+            scanned += 1
+            for raw in source.splitlines():
+                line = raw.strip()
+                if line.startswith(("import ", "export ")) or "require(" in line:
+                    lines.append((path, line))
+    assert scanned > 0, f"No UI sources found under {UI_SRC_DIR}"
+    return lines
+
 
 # =========================================================================
 # Architecture Isolation Tests
@@ -87,51 +115,9 @@ class TestArchitectureIsolation:
         assert not hasattr(t, "modify_state")
         assert not hasattr(t, "update_hive")
 
-    def test_no_ui_to_hal_direct_calls(self):
-        """UI modules must not import HAL modules."""
-        ui_files = [
-            "ui/components.py", "ui/mission_config.py",
-            "ui/recommendation_panel.py", "ui/resource_dashboard.py",
-            "ui/risk_dashboard.py", "ui/swarm_view.py",
-            "ui/timeline_view.py",
-        ]
-        hal_imports = [
-            "from core.hal_interfaces", "from core.hal_adapters",
-            "from core.hal_telemetry", "from core.hal_safety",
-            "import core.hal_",
-        ]
-        for ui_file in ui_files:
-            if not os.path.exists(ui_file):
-                continue
-            with open(ui_file, "r") as f:
-                source = f.read()
-            for imp in hal_imports:
-                assert imp not in source, (
-                    f"UI file {ui_file} imports HAL: '{imp}'"
-                )
-
-    def test_no_ui_to_hive_mutation(self):
-        """UI must not import Hive mutation methods."""
-        ui_files = [
-            "ui/components.py", "ui/mission_config.py",
-            "ui/recommendation_panel.py", "ui/resource_dashboard.py",
-            "ui/risk_dashboard.py", "ui/swarm_view.py",
-            "ui/timeline_view.py",
-        ]
-        hive_imports = [
-            "from core.hive ", "from core.hive_integration ",
-            "from core.mission_orchestrator ",
-            "from core.fleet_manager ", "from core.resource_system ",
-        ]
-        for ui_file in ui_files:
-            if not os.path.exists(ui_file):
-                continue
-            with open(ui_file, "r") as f:
-                source = f.read()
-            for imp in hive_imports:
-                assert imp not in source, (
-                    f"UI file {ui_file} imports Hive mutation: '{imp}'"
-                )
+    # UI -> HAL / Hive isolation is enforced against the current Mission
+    # Control UI by TestCrossLayerLeakDetection.test_ui_no_hal_imports and
+    # .test_ui_no_hive_imports.
 
     def test_no_ros2_to_hive_decision_logic(self):
         """No ROS2 module exists that leaks decision logic into Hive."""
@@ -170,18 +156,30 @@ class TestArchitectureIsolation:
                     f"HAL imports planning module in {module}: '{imp}'"
                 )
 
-    def test_app_does_not_import_hal(self):
-        """Main app entry point must not import HAL directly."""
-        with open("app.py", "r") as f:
-            source = f.read()
+    def test_planning_entrypoints_do_not_import_hal(self):
+        """
+        The planning-side entry points must not import HAL directly.
+
+        HAL is reachable only through the Digital Twin runtime, which drives
+        drones via the CommandSchema single entry point. The Mission Definition
+        Pipeline (Planning Core + its transport) stays hardware-agnostic.
+        """
         hal_imports = [
             "from core.hal_interfaces", "from core.hal_adapters",
             "from core.hal_telemetry", "from core.hal_safety",
         ]
-        for imp in hal_imports:
-            assert imp not in source, (
-                f"app.py imports HAL: '{imp}'"
-            )
+        for module in [
+            "backend/run.py",
+            "backend/mission_pipeline/api.py",
+            "backend/mission_pipeline/planning_core.py",
+            "backend/mission_pipeline/library_api.py",
+        ]:
+            with open(module, "r") as f:
+                source = f.read()
+            for imp in hal_imports:
+                assert imp not in source, (
+                    f"{module} imports HAL: '{imp}'"
+                )
 
 
 # =========================================================================
@@ -236,34 +234,24 @@ class TestCrossLayerLeakDetection:
         )
 
     def test_ui_no_hal_imports(self):
-        """Scan all UI files for HAL imports via AST."""
-        ui_dir = "ui"
-        for filename in os.listdir(ui_dir):
-            if not filename.endswith(".py"):
-                continue
-            filepath = os.path.join(ui_dir, filename)
-            imports = self._get_imports(filepath)
-            for imp in imports:
-                assert not imp.startswith("core.hal_"), (
-                    f"UI file {filepath} imports HAL module: {imp}"
+        """The Mission Control UI must not import HAL modules."""
+        for filepath, line in ui_import_lines():
+            for token in ("core.hal_", "core/hal_"):
+                assert token not in line, (
+                    f"UI file {filepath} imports HAL: {line}"
                 )
 
     def test_ui_no_hive_imports(self):
-        """Scan all UI files for Hive mutation imports via AST."""
+        """The Mission Control UI must not import Hive mutation modules."""
         hive_modules = {
             "core.hive", "core.hive_integration",
             "core.mission_orchestrator", "core.fleet_manager",
             "core.resource_system",
         }
-        ui_dir = "ui"
-        for filename in os.listdir(ui_dir):
-            if not filename.endswith(".py"):
-                continue
-            filepath = os.path.join(ui_dir, filename)
-            imports = self._get_imports(filepath)
-            for imp in imports:
-                assert imp not in hive_modules, (
-                    f"UI file {filepath} imports Hive: {imp}"
+        for filepath, line in ui_import_lines():
+            for module in hive_modules:
+                assert module not in line, (
+                    f"UI file {filepath} imports Hive: {line}"
                 )
 
     def test_no_global_mutable_shared_state(self):
@@ -623,25 +611,13 @@ class TestDigitalTwinContract:
                 assert "emit_command" not in name
 
     def test_dtc_ui_reads_planning_output_only(self):
-        """UI imports only data types from planning modules, not HAL/Hive."""
-        ui_dir = "ui"
-        allowed_core_modules = {
-            "core.geometry", "core.decision_engine",
-            "core.environment_analyzer", "core.resource_planner",
-            "core.risk_engine", "core.swarm_planner",
-            "core.route_planner", "core.mission_timeline",
-            "core.mission_intake",
-        }
-        for filename in os.listdir(ui_dir):
-            if not filename.endswith(".py"):
-                continue
-            filepath = os.path.join(ui_dir, filename)
-            with open(filepath, "r") as f:
-                tree = ast.parse(f.read())
-            for node in ast.walk(tree):
-                if isinstance(node, ast.ImportFrom) and node.module:
-                    if node.module.startswith("core."):
-                        assert node.module in allowed_core_modules, (
-                            f"UI {filepath} imports non-planning module: "
-                            f"{node.module}"
-                        )
+        """
+        The UI consumes planning/runtime output over HTTP only.
+
+        It is a separate Next.js application, so it cannot import any Python
+        module: reaching the backend at all requires the transport layer.
+        """
+        for filepath, line in ui_import_lines():
+            assert "core." not in line, (
+                f"UI {filepath} imports a backend Python module directly: {line}"
+            )

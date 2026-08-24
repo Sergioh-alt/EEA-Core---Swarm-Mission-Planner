@@ -175,6 +175,12 @@ export default function LibraryEntryPage() {
   const geometry = pkg ? geometryOf(pkg) : null;
   const environment = pkg ? environmentOf(pkg) : null;
   const routes = pkg ? routeSummariesOf(pkg) : [];
+  // Non-blocking Planning Core advisories, shown here as they already are on
+  // the execution-history record — same source, same wording.
+  const packageWarnings = (
+    (pkg?.validation as { warnings?: readonly unknown[] } | undefined)
+      ?.warnings ?? []
+  ).filter((w): w is string => typeof w === "string");
 
   return (
     <PageShell
@@ -357,6 +363,11 @@ export default function LibraryEntryPage() {
                 : "—"
             }
           />
+          {packageWarnings.map((warning) => (
+            <p key={warning} className="mt-1 text-[11px] text-amber-400">
+              {warning}
+            </p>
+          ))}
         </Panel>
 
         <Panel title="Planning Core result">
